@@ -5,6 +5,7 @@ export interface MenuThemePalette {
   label: string;
   description: string;
   pageBg: string;
+  pageHex: string;
   surfaceBg: string;
   cardBg: string;
   navBg: string;
@@ -22,6 +23,7 @@ export const MENU_THEMES: Record<MenuThemeId, MenuThemePalette> = {
     label: 'Warm Ivory',
     description: 'Warm cream canvas with soft beige surfaces and espresso ink',
     pageBg: 'bg-[#FAF7F2]',
+    pageHex: '#FAF7F2',
     surfaceBg: 'bg-[#F3EDE2]',
     cardBg: 'bg-[#FFFFFF]',
     navBg: 'bg-[#FAF7F2]/95',
@@ -37,6 +39,7 @@ export const MENU_THEMES: Record<MenuThemeId, MenuThemePalette> = {
     label: 'Linen & Stone',
     description: 'Crisp alabaster paper with muted stone surfaces and slate type',
     pageBg: 'bg-[#F6F5F1]',
+    pageHex: '#F6F5F1',
     surfaceBg: 'bg-[#ECEAE3]',
     cardBg: 'bg-[#FFFFFF]',
     navBg: 'bg-[#F6F5F1]/95',
@@ -52,6 +55,7 @@ export const MENU_THEMES: Record<MenuThemeId, MenuThemePalette> = {
     label: 'Evening Bistro',
     description: 'Deep charcoal canvas with warm espresso cards and ivory type',
     pageBg: 'bg-[#161412]',
+    pageHex: '#161412',
     surfaceBg: 'bg-[#211D1A]',
     cardBg: 'bg-[#1F1B18]',
     navBg: 'bg-[#161412]/95',

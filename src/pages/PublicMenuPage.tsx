@@ -7,6 +7,7 @@ import type {Category, PublicMenuData, PublicProduct} from '../types/menu';
 import {formatPrice} from '../utils/formatters';
 import {MenuImage} from '../components/common/MenuImage';
 import {SetupRequiredState} from '../components/common/SetupRequiredState';
+import {ChefCookingIntro} from '../components/public-menu/ChefCookingIntro';
 import {getMenuTheme} from '../components/public-menu/themeConfig';
 
 interface CategoryGroup {
@@ -19,6 +20,7 @@ export function PublicMenuPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
+  const [showIntro, setShowIntro] = useState(true);
 
   const loadMenu = useCallback(async (silent = false) => {
     if (!isSupabaseConfigured) {
@@ -114,6 +116,18 @@ export function PublicMenuPage() {
     <div
       className={`min-h-screen flex flex-col ${theme.pageBg} ${theme.textPrimary} transition-colors duration-200`}
     >
+      {showIntro ? (
+        <ChefCookingIntro
+          businessName={businessName}
+          themeBgClass={theme.pageBg}
+          themeTextClass={theme.textPrimary}
+          themeSubTextClass={theme.textSecondary}
+          themeBorderClass={theme.border}
+          backgroundColorHex={theme.pageHex}
+          isDarkTheme={theme.isDark}
+          onComplete={() => setShowIntro(false)}
+        />
+      ) : null}
       {/* Business Header */}
       <header className={`border-b ${theme.border}`}>
         <div className="relative max-w-5xl mx-auto px-5 sm:px-8 pt-12 pb-8 sm:pt-14 sm:pb-10 text-center">
