@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {Utensils} from 'lucide-react';
 
 interface MenuImageProps {
@@ -20,6 +20,11 @@ export function MenuImage({
 }: MenuImageProps) {
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+    setIsLoaded(false);
+  }, [src]);
 
   if (!src || src === 'no-image' || hasError) {
     return (

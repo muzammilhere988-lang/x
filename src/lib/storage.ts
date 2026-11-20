@@ -130,7 +130,7 @@ export async function uploadMenuImage(
 }
 
 export async function deleteMenuImage(imagePath: string | null | undefined): Promise<void> {
-  if (!supabase || !imagePath || imagePath === 'no-image') return;
+  if (!supabase || !imagePath || imagePath === 'no-image' || imagePath === 'external-url') return;
 
   const {error} = await supabase.storage.from(MENU_IMAGES_BUCKET).remove([imagePath]);
   if (error) {

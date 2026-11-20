@@ -1,5 +1,5 @@
 import {useEffect, useRef, useState, type ChangeEvent, type FormEvent} from 'react';
-import {Upload, X} from 'lucide-react';
+import {Link2, Upload, X} from 'lucide-react';
 import {createProduct, updateProduct} from '../../lib/menuApi';
 import {deleteMenuImage, uploadMenuImage, validateImageFile} from '../../lib/storage';
 import type {Category, Product} from '../../types/menu';
@@ -34,7 +34,10 @@ export function ProductFormModal({
   const [adminNotes, setAdminNotes] = useState('');
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imageUrlInput, setImageUrlInput] = useState('');
+  const [showUrlInput, setShowUrlInput] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [previewError, setPreviewError] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [uploadStage, setUploadStage] = useState<string>('');
 
@@ -51,11 +54,14 @@ export function ProductFormModal({
       setIsActive(editingProduct.is_active);
       setIsAvailable(editingProduct.is_available);
       setAdminNotes(editingProduct.admin_notes ?? '');
-      setPreviewUrl(
+      const existingUrl =
         editingProduct.image_url && editingProduct.image_url !== 'no-image'
           ? editingProduct.image_url
-          : ''
-      );
+          : '';
+      setPreviewUrl(existingUrl);
+      const isExternal = editingProduct.image_path === 'external-url' && Boolean(existingUrl);
+      setImageUrlInput(isExternal ? existingUrl : '');
+      setShowUrlInput(isExternal);
     } else {
       setName('');
       setPriceInput('');
@@ -64,9 +70,12 @@ export function ProductFormModal({
       setIsAvailable(true);
       setAdminNotes('');
       setPreviewUrl('');
+      setImageUrlInput('');
+      setShowUrlInput(false);
     }
 
     setSelectedFile(null);
+    setPreviewError(false);
     setUploadProgress(0);
     setUploadStage('');
     setError('');
@@ -108,7 +117,28 @@ export function ProductFormModal({
       URL.revokeObjectURL(previewUrl);
     }
     setSelectedFile(file);
+    setImageUrlInput('');
+    setShowUrlInput(false);
+    setPreviewError(false);
     setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const handleImageUrlChange = (val: string) => {
+    setImageUrlInput(val);
+    setSelectedFile(null);
+    setPreviewError(false);
+    const trimmed = val.trim();
+    if (!trimmed) {
+      setPreviewUrl(
+        editingProduct?.image_path &&
+          editingProduct.image_path !== 'external-url' &&
+          editingProduct.image_url !== 'no-image'
+          ? editingProduct.image_url
+          : ''
+      );
+      return;
+    }
+    setPreviewUrl(trimmed);
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -132,6 +162,20 @@ export function ProductFormModal({
       return;
     }
 
+    const trimmedExternalUrl = imageUrlInput.trim();
+    if (!selectedFile && trimmedExternalUrl) {
+      try {
+        const parsed = new URL(trimmedExternalUrl);
+        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+          setError('Image URL must start with https:// or http://');
+          return;
+        }
+      } catch {
+        setError('Please enter a valid image URL starting with https://');
+        return;
+      }
+    }
+
     setSubmitting(true);
     let newlyUploadedPath: string | null = null;
 
@@ -147,6 +191,12 @@ export function ProductFormModal({
         imagePath = uploaded.path;
         imageUrl = uploaded.publicUrl;
         newlyUploadedPath = uploaded.path;
+      } else if (trimmedExternalUrl) {
+        imagePath = 'external-url';
+        imageUrl = trimmedExternalUrl;
+      } else if (showUrlInput && editingProduct?.image_path === 'external-url') {
+        imagePath = 'no-image';
+        imageUrl = 'no-image';
       }
 
       if (editingProduct) {
@@ -161,8 +211,14 @@ export function ProductFormModal({
           image_url: imageUrl,
         });
 
-        // Clean up previous storage object after DB update succeeds
-        if (newlyUploadedPath && editingProduct.image_path && editingProduct.image_path !== newlyUploadedPath) {
+        // Clean up previous storage object if replaced by a new file or external URL
+        const replacedOldStorageFile =
+          editingProduct.image_path &&
+          editingProduct.image_path !== 'no-image' &&
+          editingProduct.image_path !== 'external-url' &&
+          editingProduct.image_path !== imagePath;
+
+        if (replacedOldStorageFile) {
           await deleteMenuImage(editingProduct.image_path);
         }
 
@@ -246,7 +302,7 @@ export function ProductFormModal({
             </div>
           ) : null}
 
-          {/* Image Upload */}
+          {/* Image Upload or Paste URL */}
           <div>
             <label className="block text-sm font-medium text-stone-800 mb-1.5">
               Product Photograph {editingProduct ? '(Optional to replace)' : '(Optional)'}
@@ -254,10 +310,12 @@ export function ProductFormModal({
 
             <div className="flex items-start gap-4">
               <div className="w-28 h-24 rounded-lg border border-stone-200 bg-stone-50 overflow-hidden shrink-0 flex items-center justify-center">
-                {previewUrl ? (
+                {previewUrl && !previewError ? (
                   <img
                     src={previewUrl}
                     alt="Product preview"
+                    referrerPolicy="no-referrer"
+                    onError={() => setPreviewError(true)}
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -274,17 +332,73 @@ export function ProductFormModal({
                   disabled={submitting}
                   className="hidden"
                 />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={submitting}
-                  className="px-4 py-2 text-sm font-medium text-stone-800 bg-white border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors"
-                >
-                  {previewUrl ? 'Replace Photograph' : 'Upload Photograph'}
-                </button>
-                <p className="mt-1.5 text-xs text-stone-500">
-                  JPG, PNG, or WebP up to 5 MB. Automatically optimized for mobile speed.
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={submitting}
+                    className="px-3.5 py-2 text-sm font-medium text-stone-800 bg-white border border-stone-300 rounded-lg hover:bg-stone-50 transition-colors whitespace-nowrap"
+                  >
+                    {previewUrl && !showUrlInput ? 'Replace Photograph' : 'Upload Photograph'}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowUrlInput((prev) => !prev)}
+                    disabled={submitting}
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-lg border transition-colors whitespace-nowrap ${
+                      showUrlInput
+                        ? 'bg-stone-900 text-white border-stone-900'
+                        : 'text-stone-800 bg-white border-stone-300 hover:bg-stone-50'
+                    }`}
+                  >
+                    <Link2 className="w-3.5 h-3.5" />
+                    <span>Paste Image URL</span>
+                  </button>
+                </div>
+
+                {showUrlInput ? (
+                  <div className="mt-2.5 space-y-1.5">
+                    <div className="relative">
+                      <input
+                        type="url"
+                        value={imageUrlInput}
+                        onChange={(e) => handleImageUrlChange(e.target.value)}
+                        disabled={submitting}
+                        placeholder="https://i.pinimg.com/..."
+                        aria-label="Paste direct image URL"
+                        className="w-full h-10 pl-3 pr-9 text-xs border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-stone-900"
+                      />
+                      {imageUrlInput ? (
+                        <button
+                          type="button"
+                          onClick={() => handleImageUrlChange('')}
+                          aria-label="Clear image URL"
+                          className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-stone-400 hover:text-stone-700"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      ) : null}
+                    </div>
+                    {previewError && imageUrlInput.trim() ? (
+                      <p className="text-[11px] text-amber-700">
+                        Could not preview this link as an image. On Pinterest, right-click or
+                        long-press the image and choose &ldquo;Copy image address&rdquo; (usually
+                        starts with <span className="font-mono">i.pinimg.com</span>), not &ldquo;Copy
+                        link&rdquo;.
+                      </p>
+                    ) : (
+                      <p className="text-[11px] text-stone-500">
+                        Paste a direct image link (e.g. Pinterest &ldquo;Copy image address&rdquo;).
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="mt-1.5 text-xs text-stone-500">
+                    Upload JPG/PNG/WebP up to 5 MB, or click &ldquo;Paste Image URL&rdquo;.
+                  </p>
+                )}
+
                 {submitting && uploadProgress > 0 ? (
                   <div className="mt-2.5">
                     <div className="flex items-center justify-between text-xs text-stone-600 mb-1">

@@ -109,6 +109,10 @@ export function AdminLayout({
             <LogOut className="w-4 h-4 shrink-0" strokeWidth={1.75} />
             <span>{signingOut ? 'Signing Out...' : 'Sign Out'}</span>
           </button>
+
+          <p className="px-3.5 pt-2 pb-1 text-[11px] text-stone-400">
+            Built by Muzammil Tech
+          </p>
         </div>
       </aside>
 

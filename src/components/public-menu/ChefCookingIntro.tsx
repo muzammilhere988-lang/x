@@ -8,44 +8,63 @@ const ChefCookingCanvas = lazy(() =>
 
 const FUNNY_TAGLINES = [
   'Aur yaar, aaj kya khayega?',
-  'Bhookh lagi hai kya? Chalo kuch tasty dekhte hain!',
-  'Aaj diet kal se shuru karenge, pehle menu dekho!',
-  'Pet pooja shuru ki jaaye?',
-  'Chef full form mein hai, bas aap dish decide karo!',
-  'Garma-garam khana bas ek tap door hai...',
-  'Aaj kuch chatpata ho jaaye?',
-  'Dil bole sab try kar, pet bole jaldi order kar!',
-  'Plate ready hai, bas aapki pasand ka intezaar hai!',
-  'Khaana aisa jo mood set kar de!',
-  'Aaj cheat day hai — khul ke choose karo!',
+  'Tom bhi Jerry ko pakad lega, tu pehle order toh decide kar!',
+  'Aaj diet kal se shuru karenge, pehle wrap mangwa le!',
+  'Bhookh ke maare pet mein Tom & Jerry lad rahe hain!',
+  'Bill dost dega kya? Toh double cheese wala order kar!',
+  'Gym trainer ko mat batana ki aaj yahan aaye ho...',
+  'Pyaar dhokha hai, broasted wrap hi sachcha mauka hai!',
+  'Menu dekh ke confuse mat ho, sab kuch tasty hai yaar!',
+  'Pet pooja shuru ki jaaye, ya sirf dekhne aaye ho?',
+  'Jerry cheese leke bhaag gaya, tu apni plate bacha le!',
+  'Aaj cheat day hai — calorie ginna mana hai!',
+  'Khali pet dimaag kaam nahi karta, pehle burger mangwa!',
+  'Dost bole "bas ek bite lunga" — aur poora wrap gayab!',
+  'Aaj mood spicy hai ya extra cheesy? Jaldi bata!',
+  'Dil bole pizza, pet bole burger — dono manga le na yaar!',
+  'Ghar ka khana roz milta hai, aaj Al Arabian treat le le!',
+  'Khaana aisa ki Jerry bhi bhaagna chhod ke baith jaaye!',
+  'Budget tight hai? AA Saver Combo dekh, maza full milega!',
+  'Tom pan leke peeche pada hai, tu jaldi apni dish pick kar!',
+  'Bhookh lagi hai zor se, order maaro shor se!',
+  'Zindagi chhoti hai, extra cheese mein kanjoosi mat kar!',
+  'Aaj treat teri taraf se hai na? Sab muskura rahe hain!',
+  'Ek wrap se kya hoga bhai? Saath mein combo bhi le!',
   'Swad aisa ki ungliyan chaat-te reh jaaoge!',
+  'Waiter bhi soch raha hai — bhai ab toh order bol de!',
+  'Aaj kuch chatpata ho jaaye, warna pet bura maan jayega!',
+  'Diet plan Monday se... aaj toh bas dil khol ke khao!',
+  'Plate ready hai, bas aapki pasand ka intezaar hai!',
 ];
 
-const LAST_TAGLINE_STORAGE_KEY = 'qr_menu_last_tagline_idx';
+const LAST_TAGLINE_STORAGE_KEY = 'qr_menu_recent_taglines';
 
 function pickFreshTagline(): string {
   if (typeof window === 'undefined') {
     return FUNNY_TAGLINES[0];
   }
 
-  let lastIndex = -1;
+  let recentIndices: number[] = [];
   try {
     const stored = window.localStorage.getItem(LAST_TAGLINE_STORAGE_KEY);
-    if (stored !== null) {
-      const parsed = Number.parseInt(stored, 10);
-      if (Number.isFinite(parsed)) lastIndex = parsed;
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        recentIndices = parsed.filter((n): n is number => typeof n === 'number' && Number.isFinite(n));
+      }
     }
   } catch {
     // Ignore storage access errors in private browsing
   }
 
-  let nextIndex = Math.floor(Math.random() * FUNNY_TAGLINES.length);
-  if (FUNNY_TAGLINES.length > 1 && nextIndex === lastIndex) {
-    nextIndex = (nextIndex + 1 + Math.floor(Math.random() * (FUNNY_TAGLINES.length - 1))) % FUNNY_TAGLINES.length;
-  }
+  const recentSet = new Set(recentIndices.slice(-6));
+  const availableIndices = FUNNY_TAGLINES.map((_, idx) => idx).filter((idx) => !recentSet.has(idx));
+  const pool = availableIndices.length > 0 ? availableIndices : FUNNY_TAGLINES.map((_, idx) => idx);
+  const nextIndex = pool[Math.floor(Math.random() * pool.length)];
 
   try {
-    window.localStorage.setItem(LAST_TAGLINE_STORAGE_KEY, String(nextIndex));
+    const updatedHistory = [...recentIndices.slice(-5), nextIndex];
+    window.localStorage.setItem(LAST_TAGLINE_STORAGE_KEY, JSON.stringify(updatedHistory));
   } catch {
     // Ignore storage access errors
   }

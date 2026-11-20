@@ -142,4 +142,19 @@ BEGIN
     WHERE lower(trim(p.name)) = lower(trim(v.name))
       AND p.category_id = v.category_id
   );
+
+  INSERT INTO public.business_settings (
+    business_name,
+    menu_heading,
+    currency_symbol,
+    menu_theme,
+    public_menu_url
+  )
+  VALUES ('Al Arabian Wraps & Cafe®', 'Menu', '₹', 'warm-ivory', '')
+  ON CONFLICT (singleton_guard)
+  DO UPDATE SET
+    business_name = CASE
+      WHEN trim(public.business_settings.business_name) = '' THEN EXCLUDED.business_name
+      ELSE public.business_settings.business_name
+    END;
 END $$;

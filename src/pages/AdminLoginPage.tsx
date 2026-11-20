@@ -152,8 +152,9 @@ export function AdminLoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 pt-5 border-t border-stone-100 text-xs text-stone-500 leading-relaxed">
-          Authorized business administrator only. Public registration is disabled.
+        <p className="mt-6 pt-5 border-t border-stone-100 text-xs text-stone-500 leading-relaxed flex flex-wrap items-center justify-between gap-2">
+          <span>Authorized business administrator only. Public registration is disabled.</span>
+          <span className="font-medium text-stone-600">Built by Muzammil Tech</span>
         </p>
       </div>
     </div>

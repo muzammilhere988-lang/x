@@ -5,6 +5,7 @@ import {deleteMenuImage} from '../../lib/storage';
 import type {Category, Product} from '../../types/menu';
 import {formatPrice} from '../../utils/formatters';
 import {ConfirmDialog} from '../common/ConfirmDialog';
+import {DishArtwork} from '../common/DishArtwork';
 import {MenuImage} from '../common/MenuImage';
 import {BulkImportModal} from './BulkImportModal';
 import {ProductFormModal} from './ProductFormModal';
@@ -292,11 +293,21 @@ export function ProductsSection({
                     <tr key={product.id} className="hover:bg-stone-50/70 transition-colors">
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3.5 min-w-[200px]">
-                          <MenuImage
-                            src={product.image_url}
-                            alt={product.name}
-                            className="w-14 h-11 rounded-md shrink-0 border border-stone-200"
-                          />
+                          {product.image_url && product.image_url !== 'no-image' ? (
+                            <MenuImage
+                              src={product.image_url}
+                              alt={product.name}
+                              className="w-14 h-11 rounded-md shrink-0 border border-stone-200"
+                            />
+                          ) : (
+                            <div className="w-14 h-11 rounded-md shrink-0 border border-stone-200 overflow-hidden">
+                              <DishArtwork
+                                productName={product.name}
+                                categoryName={category?.name}
+                                compact
+                              />
+                            </div>
+                          )}
                           <div className="min-w-0">
                             <p className="font-medium text-stone-900 truncate max-w-[240px]">
                               {product.name}
