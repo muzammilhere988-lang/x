@@ -116,7 +116,16 @@ export function PublicMenuPage() {
     >
       {/* Business Header */}
       <header className={`border-b ${theme.border}`}>
-        <div className="max-w-5xl mx-auto px-5 sm:px-8 pt-10 pb-8 sm:pt-14 sm:pb-10 text-center">
+        <div className="relative max-w-5xl mx-auto px-5 sm:px-8 pt-12 pb-8 sm:pt-14 sm:pb-10 text-center">
+          <div className="absolute top-4 right-5 sm:right-8">
+            <Link
+              to="/admin/login"
+              className={`text-xs font-medium ${theme.textSecondary} hover:underline underline-offset-4 whitespace-nowrap`}
+            >
+              Admin Login
+            </Link>
+          </div>
+
           {businessLogo ? (
             <div className="mb-5 flex justify-center">
               <img
