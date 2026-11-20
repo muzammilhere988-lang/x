@@ -123,8 +123,8 @@ export function ChefCookingIntro({
             ) : null}
           </div>
 
-          {/* 3D Cartoon Chef Cooking Stage */}
-          <div className="w-full max-w-md flex-1 max-h-[420px] min-h-[260px] flex items-center justify-center relative">
+          {/* 3D Tom & Jerry Chase Stage */}
+          <div className="w-full max-w-xl flex-1 max-h-[420px] min-h-[260px] flex items-center justify-center relative">
             <Suspense
               fallback={
                 <div className="flex flex-col items-center justify-center gap-3">

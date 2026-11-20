@@ -63,11 +63,19 @@ export function ChefCookingCanvas({
     const scene = new THREE.Scene();
     const bgColor = new THREE.Color(backgroundColorHex);
     scene.background = bgColor;
-    scene.fog = new THREE.FogExp2(bgColor.getHex(), 0.045);
+    scene.fog = new THREE.FogExp2(bgColor.getHex(), 0.032);
 
     const camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 40);
-    camera.position.set(0.4, 2.55, 6.1);
-    camera.lookAt(0, 1.15, 0);
+    const updateCameraFraming = (w: number, h: number) => {
+      const aspect = Math.max(w / Math.max(h, 1), 0.55);
+      camera.aspect = aspect;
+      const halfTan = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+      const targetZ = Math.max(7.2, 2.75 / (halfTan * aspect));
+      camera.position.set(0, 2.35 + (targetZ - 7.2) * 0.2, targetZ);
+      camera.lookAt(0, 0.72, 0);
+      camera.updateProjectionMatrix();
+    };
+    updateCameraFraming(width, height);
 
     // Studio environment reflection
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
@@ -79,455 +87,750 @@ export function ChefCookingCanvas({
 
     // Lighting Rig
     const hemiLight = new THREE.HemisphereLight(
-      0xfff6ea,
-      isDarkTheme ? 0x2a231e : 0xd6cab8,
-      0.85
+      0xfff7ec,
+      isDarkTheme ? 0x2b241e : 0xd5c8b6,
+      0.95
     );
     scene.add(hemiLight);
 
-    const keyLight = new THREE.DirectionalLight(0xfff1dd, 1.9);
-    keyLight.position.set(3.5, 6, 4.5);
+    const keyLight = new THREE.DirectionalLight(0xfff1dc, 1.85);
+    keyLight.position.set(3.8, 6.4, 4.8);
     if (!isSoftwareGl) {
       keyLight.castShadow = true;
       keyLight.shadow.mapSize.set(1024, 1024);
       keyLight.shadow.camera.near = 0.5;
       keyLight.shadow.camera.far = 18;
-      keyLight.shadow.camera.left = -3.5;
-      keyLight.shadow.camera.right = 3.5;
-      keyLight.shadow.camera.top = 3.5;
-      keyLight.shadow.camera.bottom = -3.5;
+      keyLight.shadow.camera.left = -4.5;
+      keyLight.shadow.camera.right = 4.5;
+      keyLight.shadow.camera.top = 4.5;
+      keyLight.shadow.camera.bottom = -4.5;
       keyLight.shadow.bias = -0.0005;
       keyLight.shadow.normalBias = 0.02;
     }
     scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0xffe2c2, 0.85);
-    rimLight.position.set(-4, 3.5, -3);
+    const rimLight = new THREE.DirectionalLight(0xffe0bd, 0.8);
+    rimLight.position.set(-4.5, 3.5, -2.5);
     scene.add(rimLight);
 
-    const stoveGlow = new THREE.PointLight(0xff6b2b, 1.6, 4.5, 2);
-    stoveGlow.position.set(0.45, 0.95, 0.95);
-    scene.add(stoveGlow);
+    // Materials
+    const matFloor = new THREE.MeshStandardMaterial({
+      color: isDarkTheme ? 0x29231e : 0xe8dfd1,
+      roughness: 0.85,
+      metalness: 0.04,
+    });
+    const matMat = new THREE.MeshStandardMaterial({
+      color: isDarkTheme ? 0x3b3027 : 0xdccbb5,
+      roughness: 0.9,
+      metalness: 0.0,
+    });
 
-    // Materials (varied roughness & metalness across adjacent parts)
-    const matSkin = new THREE.MeshStandardMaterial({
-      color: 0xf6c39c,
-      roughness: 0.62,
-      metalness: 0.02,
-    });
-    const matCheek = new THREE.MeshStandardMaterial({
-      color: 0xe88d7c,
-      roughness: 0.7,
-      metalness: 0.0,
-    });
-    const matJacket = new THREE.MeshStandardMaterial({
-      color: 0xfbf9f5,
-      roughness: 0.78,
-      metalness: 0.02,
-    });
-    const matHat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      roughness: 0.82,
-      metalness: 0.0,
-    });
-    const matScarf = new THREE.MeshStandardMaterial({
-      color: 0xc93b2b,
+    // Tom (Chef Cat in Cook Dress) Materials
+    const matTomFur = new THREE.MeshStandardMaterial({
+      color: 0x5c7089,
       roughness: 0.68,
       metalness: 0.04,
     });
-    const matHairDark = new THREE.MeshStandardMaterial({
-      color: 0x2d211b,
-      roughness: 0.55,
-      metalness: 0.05,
-    });
-    const matEyeWhite = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      roughness: 0.25,
-      metalness: 0.0,
-    });
-    const matEyePupil = new THREE.MeshStandardMaterial({
-      color: 0x1a1512,
-      roughness: 0.15,
-      metalness: 0.1,
-    });
-    const matButton = new THREE.MeshStandardMaterial({
-      color: 0x3b332d,
-      roughness: 0.35,
-      metalness: 0.4,
-    });
-    const matCounter = new THREE.MeshStandardMaterial({
-      color: isDarkTheme ? 0x2a241f : 0xe5dccf,
-      roughness: 0.8,
-      metalness: 0.05,
-    });
-    const matStove = new THREE.MeshStandardMaterial({
-      color: 0x2b2928,
-      roughness: 0.42,
-      metalness: 0.65,
-    });
-    const matBurner = new THREE.MeshStandardMaterial({
-      color: 0xff6224,
-      emissive: 0xff4d12,
-      emissiveIntensity: 1.5,
-      roughness: 0.3,
-      metalness: 0.1,
-    });
-    const matPan = new THREE.MeshStandardMaterial({
-      color: 0x222224,
-      roughness: 0.38,
-      metalness: 0.78,
-    });
-    const matWood = new THREE.MeshStandardMaterial({
-      color: 0x9b643b,
+    const matTomCream = new THREE.MeshStandardMaterial({
+      color: 0xf4f0e8,
       roughness: 0.72,
       metalness: 0.02,
     });
-    const matFoodGolden = new THREE.MeshStandardMaterial({
-      color: 0xe6a135,
+    const matChefWhite = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.76,
+      metalness: 0.02,
+    });
+    const matDressTrim = new THREE.MeshStandardMaterial({
+      color: 0xd9382e,
+      roughness: 0.62,
+      metalness: 0.04,
+    });
+    const matPink = new THREE.MeshStandardMaterial({
+      color: 0xe68491,
+      roughness: 0.58,
+      metalness: 0.02,
+    });
+    const matEyeYellow = new THREE.MeshStandardMaterial({
+      color: 0xf7e371,
+      roughness: 0.25,
+      metalness: 0.05,
+    });
+    const matWhite = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.22,
+      metalness: 0.0,
+    });
+    const matDark = new THREE.MeshStandardMaterial({
+      color: 0x1b1715,
+      roughness: 0.25,
+      metalness: 0.1,
+    });
+    const matPan = new THREE.MeshStandardMaterial({
+      color: 0x262629,
+      roughness: 0.35,
+      metalness: 0.78,
+    });
+    const matWood = new THREE.MeshStandardMaterial({
+      color: 0x9b6339,
+      roughness: 0.72,
+      metalness: 0.02,
+    });
+
+    // Jerry (Dodging Mouse) & Food Materials
+    const matJerryFur = new THREE.MeshStandardMaterial({
+      color: 0xa66537,
       roughness: 0.68,
       metalness: 0.02,
     });
-    const matFoodTomato = new THREE.MeshStandardMaterial({
-      color: 0xd93829,
-      roughness: 0.4,
-      metalness: 0.05,
+    const matJerryTan = new THREE.MeshStandardMaterial({
+      color: 0xebbd92,
+      roughness: 0.74,
+      metalness: 0.0,
     });
-    const matFoodHerb = new THREE.MeshStandardMaterial({
-      color: 0x4b8f42,
-      roughness: 0.65,
+    const matCheese = new THREE.MeshStandardMaterial({
+      color: 0xf5c23b,
+      roughness: 0.55,
       metalness: 0.02,
     });
-    const matSteam = new THREE.MeshStandardMaterial({
+    const matCheeseHole = new THREE.MeshStandardMaterial({
+      color: 0xd99b1e,
+      roughness: 0.7,
+      metalness: 0.0,
+    });
+    const matBun = new THREE.MeshStandardMaterial({
+      color: 0xd88b3a,
+      roughness: 0.68,
+      metalness: 0.0,
+    });
+    const matPatty = new THREE.MeshStandardMaterial({
+      color: 0x61311c,
+      roughness: 0.8,
+      metalness: 0.0,
+    });
+    const matLettuce = new THREE.MeshStandardMaterial({
+      color: 0x52a846,
+      roughness: 0.6,
+      metalness: 0.0,
+    });
+    const matPlate = new THREE.MeshStandardMaterial({
+      color: 0xfaf7f2,
+      roughness: 0.24,
+      metalness: 0.1,
+    });
+    const matTableCloth = new THREE.MeshStandardMaterial({
+      color: 0xc93b32,
+      roughness: 0.85,
+      metalness: 0.0,
+    });
+    const matDust = new THREE.MeshStandardMaterial({
       color: 0xffffff,
       transparent: true,
-      opacity: 0.45,
+      opacity: 0.48,
       roughness: 0.95,
       depthWrite: false,
     });
 
-    // Ground & Contact Shadow
+    // Stage Group
     const stageGroup = new THREE.Group();
     scene.add(stageGroup);
 
     const floorDisc = new THREE.Mesh(
-      new THREE.CylinderGeometry(2.4, 2.5, 0.16, 48),
-      matCounter
+      new THREE.CylinderGeometry(3.4, 3.5, 0.16, 48),
+      matFloor
     );
     floorDisc.position.set(0, -0.08, 0);
     floorDisc.receiveShadow = true;
     stageGroup.add(floorDisc);
 
-    // Kitchen Counter + Stove in front of chef
-    const stoveGroup = new THREE.Group();
-    stoveGroup.position.set(0.32, 0, 0.88);
-    stageGroup.add(stoveGroup);
-
-    const stoveBase = new THREE.Mesh(
-      new THREE.BoxGeometry(1.15, 0.72, 0.78),
-      matStove
+    const kitchenMat = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.55, 2.55, 0.025, 48),
+      matMat
     );
-    stoveBase.position.set(0, 0.36, 0);
-    stoveBase.castShadow = true;
-    stoveBase.receiveShadow = true;
-    stoveGroup.add(stoveBase);
+    kitchenMat.position.set(0, 0.01, 0);
+    kitchenMat.scale.set(1.18, 1, 0.75);
+    kitchenMat.receiveShadow = true;
+    stageGroup.add(kitchenMat);
 
-    const burnerRing = new THREE.Mesh(
-      new THREE.TorusGeometry(0.24, 0.032, 12, 32),
-      matBurner
+    // =========================================================================
+    // CENTER SNACK TABLE (Tom & Jerry chase in a loop around this kitchen table!)
+    // =========================================================================
+    const centerTable = new THREE.Group();
+    centerTable.position.set(0, 0.02, 0);
+    stageGroup.add(centerTable);
+
+    const tablePedestal = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.11, 0.56, 16),
+      matWood
     );
-    burnerRing.rotation.x = Math.PI / 2;
-    burnerRing.position.set(0, 0.735, 0);
-    stoveGroup.add(burnerRing);
+    tablePedestal.position.y = 0.28;
+    tablePedestal.castShadow = true;
+    centerTable.add(tablePedestal);
 
-    // Chef Character Root (pivoted at ground y = 0)
-    const chefGroup = new THREE.Group();
-    chefGroup.position.set(-0.22, 0, -0.1);
-    chefGroup.rotation.y = 0.25;
-    stageGroup.add(chefGroup);
-
-    // Torso (Double-breasted chef jacket)
-    const torso = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.42, 0.52, 1.05, 28),
-      matJacket
+    const tableBase = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.28, 0.32, 0.06, 22),
+      matWood
     );
-    torso.position.set(0, 0.72, 0);
-    torso.castShadow = true;
-    torso.receiveShadow = true;
-    chefGroup.add(torso);
+    tableBase.position.y = 0.03;
+    tableBase.receiveShadow = true;
+    centerTable.add(tableBase);
 
-    // Jacket hem & buttons
-    const buttonGeo = new THREE.SphereGeometry(0.042, 12, 12);
-    [-0.12, 0.12].forEach((bx) => {
-      [0.52, 0.72, 0.92].forEach((by) => {
-        const btn = new THREE.Mesh(buttonGeo, matButton);
-        btn.position.set(bx, by, 0.43);
-        btn.scale.set(1, 1, 0.55);
-        chefGroup.add(btn);
+    const tableTop = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.56, 0.56, 0.055, 32),
+      matTableCloth
+    );
+    tableTop.position.y = 0.58;
+    tableTop.castShadow = true;
+    tableTop.receiveShadow = true;
+    centerTable.add(tableTop);
+
+    const tableNapkin = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.42, 0.42, 0.06, 28),
+      matWhite
+    );
+    tableNapkin.position.y = 0.582;
+    centerTable.add(tableNapkin);
+
+    // Plate with a juicy burger on top of the center table
+    const centerPlate = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.26, 0.2, 0.035, 24),
+      matPlate
+    );
+    centerPlate.position.set(0, 0.63, 0);
+    centerTable.add(centerPlate);
+
+    const bBun = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.14, 0.055, 20), matBun);
+    bBun.position.y = 0.67;
+    centerTable.add(bBun);
+
+    const bPatty = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.045, 20), matPatty);
+    bPatty.position.y = 0.715;
+    centerTable.add(bPatty);
+
+    const bLettuce = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.025, 16), matLettuce);
+    bLettuce.position.y = 0.745;
+    centerTable.add(bLettuce);
+
+    const bTopBun = new THREE.Mesh(
+      new THREE.SphereGeometry(0.15, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2),
+      matBun
+    );
+    bTopBun.position.y = 0.76;
+    bTopBun.castShadow = true;
+    centerTable.add(bTopBun);
+
+    // =========================================================================
+    // 1. TOM (Chef Cook Dress + Hat, running fast & swinging pan to beat Jerry!)
+    // =========================================================================
+    const tomRoot = new THREE.Group();
+    stageGroup.add(tomRoot);
+
+    const tomBodyTilt = new THREE.Group();
+    tomBodyTilt.position.set(0, 0.56, 0);
+    tomBodyTilt.rotation.x = 0.34;
+    tomRoot.add(tomBodyTilt);
+
+    // Cook dress bodice + flared skirt + red trim + waist sash bow
+    const tomDressBodice = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.27, 0.3, 0.52, 24),
+      matChefWhite
+    );
+    tomDressBodice.position.set(0, 0.39, 0);
+    tomDressBodice.castShadow = true;
+    tomBodyTilt.add(tomDressBodice);
+
+    const tomDressSkirt = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.29, 0.53, 0.48, 28),
+      matChefWhite
+    );
+    tomDressSkirt.position.set(0, -0.05, 0);
+    tomDressSkirt.castShadow = true;
+    tomBodyTilt.add(tomDressSkirt);
+
+    const tomDressHem = new THREE.Mesh(
+      new THREE.TorusGeometry(0.52, 0.035, 10, 32),
+      matDressTrim
+    );
+    tomDressHem.rotation.x = Math.PI / 2;
+    tomDressHem.position.set(0, -0.28, 0);
+    tomBodyTilt.add(tomDressHem);
+
+    const tomWaistSash = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.315, 0.325, 0.09, 24),
+      matDressTrim
+    );
+    tomWaistSash.position.set(0, 0.17, 0);
+    tomBodyTilt.add(tomWaistSash);
+
+    const bowLeft = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.15, 12), matDressTrim);
+    bowLeft.position.set(-0.085, 0.17, -0.34);
+    bowLeft.rotation.z = Math.PI / 2 - 0.25;
+    tomBodyTilt.add(bowLeft);
+
+    const bowRight = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.15, 12), matDressTrim);
+    bowRight.position.set(0.085, 0.17, -0.34);
+    bowRight.rotation.z = -Math.PI / 2 + 0.25;
+    tomBodyTilt.add(bowRight);
+
+    const btnGeo = new THREE.SphereGeometry(0.028, 10, 10);
+    [-0.07, 0.07].forEach((bx) => {
+      [0.28, 0.43, 0.57].forEach((by) => {
+        const btn = new THREE.Mesh(btnGeo, matDark);
+        btn.position.set(bx, by, 0.28);
+        btn.scale.set(1, 1, 0.5);
+        tomBodyTilt.add(btn);
       });
     });
 
-    // Red Neckerchief
-    const scarf = new THREE.Mesh(
-      new THREE.TorusGeometry(0.35, 0.075, 14, 28),
-      matScarf
+    const tomScarf = new THREE.Mesh(
+      new THREE.TorusGeometry(0.24, 0.052, 12, 24),
+      matDressTrim
     );
-    scarf.rotation.x = Math.PI / 2 + 0.12;
-    scarf.position.set(0, 1.24, 0.02);
-    scarf.castShadow = true;
-    chefGroup.add(scarf);
+    tomScarf.rotation.x = Math.PI / 2 + 0.12;
+    tomScarf.position.set(0, 0.65, 0.02);
+    tomBodyTilt.add(tomScarf);
 
-    const scarfKnot = new THREE.Mesh(
-      new THREE.ConeGeometry(0.11, 0.24, 14),
-      matScarf
+    // Tom Head
+    const tomHeadGroup = new THREE.Group();
+    tomHeadGroup.position.set(0, 0.94, 0.05);
+    tomBodyTilt.add(tomHeadGroup);
+
+    const tomHead = new THREE.Mesh(
+      new THREE.SphereGeometry(0.32, 28, 24),
+      matTomFur
     );
-    scarfKnot.position.set(0.08, 1.12, 0.36);
-    scarfKnot.rotation.z = -0.3;
-    scarfKnot.rotation.x = -0.2;
-    chefGroup.add(scarfKnot);
+    tomHead.scale.set(1.06, 0.96, 1.0);
+    tomHead.castShadow = true;
+    tomHeadGroup.add(tomHead);
 
-    // Head Group
-    const headGroup = new THREE.Group();
-    headGroup.position.set(0, 1.62, 0.04);
-    chefGroup.add(headGroup);
-
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.41, 32, 28), matSkin);
-    head.scale.set(1.03, 0.96, 0.98);
-    head.castShadow = true;
-    headGroup.add(head);
-
-    // Ears
-    const earGeo = new THREE.SphereGeometry(0.095, 16, 16);
-    [-0.41, 0.41].forEach((ex) => {
-      const ear = new THREE.Mesh(earGeo, matSkin);
-      ear.position.set(ex, -0.02, -0.02);
-      ear.scale.set(0.55, 0.95, 0.75);
-      headGroup.add(ear);
+    [-0.09, 0.09].forEach((mx) => {
+      const muzzle = new THREE.Mesh(
+        new THREE.SphereGeometry(0.135, 18, 16),
+        matTomCream
+      );
+      muzzle.position.set(mx, -0.07, 0.25);
+      muzzle.scale.set(1.08, 0.85, 0.85);
+      tomHeadGroup.add(muzzle);
     });
 
-    // Rosy Cheeks
-    const cheekGeo = new THREE.SphereGeometry(0.075, 16, 16);
-    [-0.22, 0.22].forEach((cx) => {
-      const cheek = new THREE.Mesh(cheekGeo, matCheek);
-      cheek.position.set(cx, -0.08, 0.34);
-      cheek.scale.set(1.15, 0.75, 0.45);
-      headGroup.add(cheek);
+    const tomOpenMouth = new THREE.Mesh(
+      new THREE.SphereGeometry(0.085, 14, 14),
+      matPink
+    );
+    tomOpenMouth.position.set(0, -0.145, 0.26);
+    tomOpenMouth.scale.set(1.15, 0.95, 0.6);
+    tomHeadGroup.add(tomOpenMouth);
+
+    const tomNose = new THREE.Mesh(
+      new THREE.SphereGeometry(0.058, 14, 14),
+      matPink
+    );
+    tomNose.position.set(0, -0.01, 0.36);
+    tomNose.scale.set(1.2, 0.85, 0.9);
+    tomHeadGroup.add(tomNose);
+
+    [-1, 1].forEach((side) => {
+      const earGroup = new THREE.Group();
+      earGroup.position.set(side * 0.21, 0.25, -0.02);
+      earGroup.rotation.z = -side * 0.32;
+      tomHeadGroup.add(earGroup);
+
+      const outerEar = new THREE.Mesh(
+        new THREE.ConeGeometry(0.105, 0.25, 16),
+        matTomFur
+      );
+      outerEar.castShadow = true;
+      earGroup.add(outerEar);
+
+      const innerEar = new THREE.Mesh(
+        new THREE.ConeGeometry(0.06, 0.17, 12),
+        matPink
+      );
+      innerEar.position.set(0, -0.02, 0.036);
+      earGroup.add(innerEar);
     });
 
-    // Nose
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.095, 20, 20), matSkin);
-    nose.position.set(0, -0.02, 0.41);
-    nose.scale.set(1.05, 0.9, 1.1);
-    headGroup.add(nose);
+    // Angry/Determined Cartoon Chase Eyes
+    [-0.11, 0.11].forEach((ex) => {
+      const eyeBg = new THREE.Mesh(
+        new THREE.SphereGeometry(0.084, 16, 16),
+        matEyeYellow
+      );
+      eyeBg.position.set(ex, 0.08, 0.265);
+      eyeBg.scale.set(0.9, 1.25, 0.55);
+      tomHeadGroup.add(eyeBg);
 
-    // Expressive Cartoon Eyes
-    const eyeWhiteGeo = new THREE.SphereGeometry(0.068, 16, 16);
-    const pupilGeo = new THREE.SphereGeometry(0.038, 14, 14);
-    [-0.145, 0.145].forEach((ex) => {
-      const eyeWhite = new THREE.Mesh(eyeWhiteGeo, matEyeWhite);
-      eyeWhite.position.set(ex, 0.07, 0.355);
-      eyeWhite.scale.set(0.95, 1.15, 0.55);
-      headGroup.add(eyeWhite);
-
-      const pupil = new THREE.Mesh(pupilGeo, matEyePupil);
-      pupil.position.set(ex, 0.07, 0.382);
-      pupil.scale.set(1, 1.1, 0.5);
-      headGroup.add(pupil);
+      const pupil = new THREE.Mesh(
+        new THREE.SphereGeometry(0.042, 12, 12),
+        matDark
+      );
+      pupil.position.set(ex, 0.075, 0.302);
+      pupil.scale.set(0.85, 1.2, 0.5);
+      tomHeadGroup.add(pupil);
 
       const brow = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.022, 0.09, 6, 10),
-        matHairDark
+        new THREE.CapsuleGeometry(0.022, 0.09, 6, 8),
+        matDark
       );
-      brow.rotation.z = ex < 0 ? 1.42 : -1.42;
-      brow.position.set(ex, 0.175, 0.355);
-      headGroup.add(brow);
+      brow.position.set(ex, 0.195, 0.275);
+      brow.rotation.z = ex < 0 ? 1.15 : -1.15;
+      tomHeadGroup.add(brow);
     });
 
-    // Curled Chef Mustache (two symmetric curved lobes)
+    // Whiskers
+    const whiskerGeo = new THREE.CylinderGeometry(0.008, 0.008, 0.23, 6);
     [-1, 1].forEach((side) => {
-      const mustacheHalf = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.048, 0.13, 8, 12),
-        matHairDark
-      );
-      mustacheHalf.position.set(side * 0.1, -0.11, 0.38);
-      mustacheHalf.rotation.z = side * 1.18;
-      mustacheHalf.rotation.y = side * 0.22;
-      headGroup.add(mustacheHalf);
+      [-0.04, -0.09, -0.14].forEach((wy, idx) => {
+        const w = new THREE.Mesh(whiskerGeo, matDark);
+        w.position.set(side * 0.23, wy, 0.27);
+        w.rotation.z = Math.PI / 2 + side * (idx - 1) * 0.18;
+        tomHeadGroup.add(w);
+      });
     });
 
-    // Iconic Pleated Chef Toque (Hat)
-    const hatGroup = new THREE.Group();
-    hatGroup.position.set(0, 0.32, -0.02);
-    hatGroup.rotation.x = -0.08;
-    headGroup.add(hatGroup);
+    // Tall Chef Hat
+    const tomHatGroup = new THREE.Group();
+    tomHatGroup.position.set(0, 0.27, -0.04);
+    tomHatGroup.rotation.x = -0.18;
+    tomHeadGroup.add(tomHatGroup);
 
     const hatBand = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.36, 0.34, 0.24, 28),
-      matHat
+      new THREE.CylinderGeometry(0.23, 0.21, 0.17, 22),
+      matChefWhite
     );
-    hatBand.position.set(0, 0.1, 0);
+    hatBand.position.set(0, 0.08, 0);
     hatBand.castShadow = true;
-    hatGroup.add(hatBand);
+    tomHatGroup.add(hatBand);
 
     const hatCrown = new THREE.Mesh(
-      new THREE.SphereGeometry(0.42, 24, 20),
-      matHat
+      new THREE.SphereGeometry(0.28, 20, 16),
+      matChefWhite
     );
-    hatCrown.position.set(0, 0.36, 0);
-    hatCrown.scale.set(1.05, 0.85, 1.05);
+    hatCrown.position.set(0, 0.26, 0);
+    hatCrown.scale.set(1.05, 0.86, 1.05);
     hatCrown.castShadow = true;
-    hatGroup.add(hatCrown);
+    tomHatGroup.add(hatCrown);
 
-    // Puffy toque lobes around top crown
-    const puffGeo = new THREE.SphereGeometry(0.2, 16, 16);
-    for (let i = 0; i < 6; i++) {
-      const angle = (i / 6) * Math.PI * 2;
-      const puff = new THREE.Mesh(puffGeo, matHat);
-      puff.position.set(Math.cos(angle) * 0.24, 0.34, Math.sin(angle) * 0.24);
-      puff.castShadow = true;
-      hatGroup.add(puff);
-    }
+    // Tom Running Legs
+    const tomLeftLegPivot = new THREE.Group();
+    tomLeftLegPivot.position.set(-0.15, -0.21, 0);
+    tomBodyTilt.add(tomLeftLegPivot);
 
-    // Right Arm + Frying Pan Pivot (Animated cooking hand)
-    const rightArmPivot = new THREE.Group();
-    rightArmPivot.position.set(0.45, 1.05, 0.12);
-    chefGroup.add(rightArmPivot);
+    const tomRightLegPivot = new THREE.Group();
+    tomRightLegPivot.position.set(0.15, -0.21, 0);
+    tomBodyTilt.add(tomRightLegPivot);
 
-    const rightArm = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.11, 0.38, 8, 14),
-      matJacket
+    [tomLeftLegPivot, tomRightLegPivot].forEach((legPivot) => {
+      const leg = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.072, 0.24, 8, 12),
+        matTomFur
+      );
+      leg.position.set(0, -0.15, 0);
+      leg.castShadow = true;
+      legPivot.add(leg);
+
+      const paw = new THREE.Mesh(
+        new THREE.SphereGeometry(0.105, 14, 14),
+        matTomCream
+      );
+      paw.position.set(0, -0.3, 0.07);
+      paw.scale.set(0.95, 0.62, 1.45);
+      paw.castShadow = true;
+      legPivot.add(paw);
+    });
+
+    // Tom Right Arm (swinging Frying Pan overhead to whack Jerry!)
+    const tomRightArmPivot = new THREE.Group();
+    tomRightArmPivot.position.set(0.31, 0.55, 0.02);
+    tomBodyTilt.add(tomRightArmPivot);
+
+    const rSleeve = new THREE.Mesh(new THREE.SphereGeometry(0.105, 12, 12), matChefWhite);
+    rSleeve.position.set(0.04, -0.02, 0.02);
+    tomRightArmPivot.add(rSleeve);
+
+    const rArm = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.068, 0.34, 8, 12),
+      matTomFur
     );
-    rightArm.position.set(0.12, -0.14, 0.18);
-    rightArm.rotation.x = 1.05;
-    rightArm.rotation.z = -0.35;
-    rightArm.castShadow = true;
-    rightArmPivot.add(rightArm);
+    rArm.position.set(0.06, -0.12, 0.15);
+    rArm.rotation.x = 1.0;
+    rArm.castShadow = true;
+    tomRightArmPivot.add(rArm);
 
-    const rightHand = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 16), matSkin);
-    rightHand.position.set(0.22, -0.26, 0.42);
-    rightArmPivot.add(rightHand);
-
-    // Frying Pan attached to Right Hand
-    const panGroup = new THREE.Group();
-    panGroup.position.set(0.22, -0.24, 0.46);
-    rightArmPivot.add(panGroup);
+    const rHand = new THREE.Mesh(new THREE.SphereGeometry(0.085, 14, 14), matTomCream);
+    rHand.position.set(0.08, -0.18, 0.35);
+    tomRightArmPivot.add(rHand);
 
     const panHandle = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.032, 0.04, 0.42, 12),
+      new THREE.CylinderGeometry(0.024, 0.03, 0.34, 10),
       matWood
     );
     panHandle.rotation.x = Math.PI / 2;
-    panHandle.position.set(0, 0, 0.18);
-    panHandle.castShadow = true;
-    panGroup.add(panHandle);
+    panHandle.position.set(0.08, -0.16, 0.52);
+    tomRightArmPivot.add(panHandle);
 
-    const panRim = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.36, 0.3, 0.11, 28),
+    const panBody = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.24, 0.2, 0.08, 24),
       matPan
     );
-    panRim.position.set(0, 0.01, 0.56);
-    panRim.castShadow = true;
-    panGroup.add(panRim);
+    panBody.position.set(0.08, -0.16, 0.8);
+    panBody.castShadow = true;
+    tomRightArmPivot.add(panBody);
 
-    const panInterior = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.32, 0.28, 0.03, 24),
-      matPan
+    // Tom Left Arm (reaching forward trying to grab Jerry)
+    const tomLeftArmPivot = new THREE.Group();
+    tomLeftArmPivot.position.set(-0.31, 0.55, 0.02);
+    tomBodyTilt.add(tomLeftArmPivot);
+
+    const lSleeve = new THREE.Mesh(new THREE.SphereGeometry(0.105, 12, 12), matChefWhite);
+    lSleeve.position.set(-0.04, -0.02, 0.02);
+    tomLeftArmPivot.add(lSleeve);
+
+    const lArm = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.068, 0.34, 8, 12),
+      matTomFur
     );
-    panInterior.position.set(0, 0.055, 0.56);
-    panGroup.add(panInterior);
+    lArm.position.set(-0.06, -0.14, 0.14);
+    lArm.rotation.x = 0.85;
+    lArm.castShadow = true;
+    tomLeftArmPivot.add(lArm);
 
-    // Left Arm + Wooden Spoon
-    const leftArmPivot = new THREE.Group();
-    leftArmPivot.position.set(-0.46, 1.04, 0.08);
-    chefGroup.add(leftArmPivot);
+    const lHand = new THREE.Mesh(new THREE.SphereGeometry(0.085, 14, 14), matTomCream);
+    lHand.position.set(-0.08, -0.22, 0.34);
+    tomLeftArmPivot.add(lHand);
 
-    const leftArm = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.11, 0.36, 8, 14),
-      matJacket
+    const tomTailPivot = new THREE.Group();
+    tomTailPivot.position.set(0, -0.12, -0.36);
+    tomBodyTilt.add(tomTailPivot);
+
+    const tailShaft = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.04, 0.52, 8, 12),
+      matTomFur
     );
-    leftArm.position.set(-0.14, -0.16, 0.12);
-    leftArm.rotation.x = 0.65;
-    leftArm.rotation.z = 0.45;
-    leftArm.castShadow = true;
-    leftArmPivot.add(leftArm);
+    tailShaft.position.set(0, 0.14, -0.22);
+    tailShaft.rotation.x = -0.85;
+    tomTailPivot.add(tailShaft);
 
-    const leftHand = new THREE.Mesh(new THREE.SphereGeometry(0.105, 16, 16), matSkin);
-    leftHand.position.set(-0.26, -0.26, 0.28);
-    leftArmPivot.add(leftHand);
-
-    const spoonHandle = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.02, 0.022, 0.52, 10),
-      matWood
+    const tailTip = new THREE.Mesh(
+      new THREE.SphereGeometry(0.052, 12, 12),
+      matTomCream
     );
-    spoonHandle.position.set(-0.26, -0.12, 0.38);
-    spoonHandle.rotation.x = 0.7;
-    spoonHandle.rotation.z = 0.2;
-    leftArmPivot.add(spoonHandle);
+    tailTip.position.set(0, 0.34, -0.44);
+    tomTailPivot.add(tailTip);
 
-    const spoonHead = new THREE.Mesh(
-      new THREE.SphereGeometry(0.068, 14, 14),
-      matWood
+    // =========================================================================
+    // 2. JERRY (Sprinting ahead, dodging & weaving while clutching stolen cheese!)
+    // =========================================================================
+    const jerryRoot = new THREE.Group();
+    stageGroup.add(jerryRoot);
+
+    const jerryBodyTilt = new THREE.Group();
+    jerryBodyTilt.position.set(0, 0.25, 0);
+    jerryBodyTilt.rotation.x = 0.38; // Forward dash lean!
+    jerryRoot.add(jerryBodyTilt);
+
+    const jerryTorso = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.165, 0.2, 10, 18),
+      matJerryFur
     );
-    spoonHead.scale.set(0.85, 1.25, 0.35);
-    spoonHead.position.set(-0.31, 0.07, 0.54);
-    spoonHead.rotation.x = 0.7;
-    leftArmPivot.add(spoonHead);
+    jerryTorso.position.set(0, 0.18, 0);
+    jerryTorso.castShadow = true;
+    jerryBodyTilt.add(jerryTorso);
 
-    // Food items tossed inside the pan (world-space group positioned above burner)
-    const foodGroup = new THREE.Group();
-    foodGroup.position.set(0.32, 0.94, 0.88);
-    stageGroup.add(foodGroup);
-
-    const pancake = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.2, 0.2, 0.06, 22),
-      matFoodGolden
+    const jerryBelly = new THREE.Mesh(
+      new THREE.SphereGeometry(0.135, 16, 16),
+      matJerryTan
     );
-    pancake.castShadow = true;
-    foodGroup.add(pancake);
+    jerryBelly.position.set(0, 0.17, 0.085);
+    jerryBelly.scale.set(0.95, 1.15, 0.65);
+    jerryBodyTilt.add(jerryBelly);
 
-    const tomato1 = new THREE.Mesh(new THREE.SphereGeometry(0.055, 14, 14), matFoodTomato);
-    tomato1.position.set(0.11, 0.06, 0.05);
-    foodGroup.add(tomato1);
+    // Jerry Head (glances back over shoulder at Tom!)
+    const jerryHeadGroup = new THREE.Group();
+    jerryHeadGroup.position.set(0, 0.44, 0.04);
+    jerryBodyTilt.add(jerryHeadGroup);
 
-    const tomato2 = new THREE.Mesh(new THREE.SphereGeometry(0.05, 14, 14), matFoodTomato);
-    tomato2.position.set(-0.1, 0.05, -0.06);
-    foodGroup.add(tomato2);
+    const jerryHead = new THREE.Mesh(
+      new THREE.SphereGeometry(0.2, 24, 20),
+      matJerryFur
+    );
+    jerryHead.scale.set(1.06, 0.96, 1.04);
+    jerryHead.castShadow = true;
+    jerryHeadGroup.add(jerryHead);
 
-    const herb = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.015, 0.05), matFoodHerb);
-    herb.position.set(0.01, 0.06, -0.03);
-    foodGroup.add(herb);
+    [-0.09, 0.09].forEach((cx) => {
+      const cheek = new THREE.Mesh(
+        new THREE.SphereGeometry(0.088, 14, 14),
+        matJerryTan
+      );
+      cheek.position.set(cx, -0.05, 0.135);
+      jerryHeadGroup.add(cheek);
+    });
 
-    // Steam Puffs rising smoothly above the sizzling pan
-    const steamPuffs: {mesh: THREE.Mesh; offset: number; driftX: number; driftZ: number}[] = [];
-    const steamGeo = new THREE.SphereGeometry(0.09, 12, 12);
-    for (let i = 0; i < 6; i++) {
-      const puff = new THREE.Mesh(steamGeo, matSteam.clone());
-      puff.position.set(0.32, 1.05, 0.88);
-      stageGroup.add(puff);
-      steamPuffs.push({
-        mesh: puff,
-        offset: i / 6,
-        driftX: (i % 2 === 0 ? 1 : -1) * (0.06 + i * 0.015),
-        driftZ: ((i % 3) - 1) * 0.05,
-      });
+    const jerrySnout = new THREE.Mesh(
+      new THREE.SphereGeometry(0.075, 14, 14),
+      matJerryTan
+    );
+    jerrySnout.position.set(0, -0.038, 0.19);
+    jerryHeadGroup.add(jerrySnout);
+
+    const jerryNose = new THREE.Mesh(
+      new THREE.SphereGeometry(0.032, 12, 12),
+      matDark
+    );
+    jerryNose.position.set(0, -0.02, 0.258);
+    jerryHeadGroup.add(jerryNose);
+
+    [-1, 1].forEach((side) => {
+      const earOuter = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.155, 0.155, 0.034, 22),
+        matJerryFur
+      );
+      earOuter.rotation.x = Math.PI / 2;
+      earOuter.rotation.y = side * 0.22;
+      earOuter.position.set(side * 0.21, 0.18, -0.03);
+      earOuter.castShadow = true;
+      jerryHeadGroup.add(earOuter);
+
+      const earInner = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.1, 0.1, 0.038, 18),
+        matPink
+      );
+      earInner.rotation.x = Math.PI / 2;
+      earInner.rotation.y = side * 0.22;
+      earInner.position.set(side * 0.21, 0.18, -0.022);
+      jerryHeadGroup.add(earInner);
+    });
+
+    // Wide Alert Eyes
+    [-0.072, 0.072].forEach((ex) => {
+      const eyeW = new THREE.Mesh(
+        new THREE.SphereGeometry(0.048, 12, 12),
+        matWhite
+      );
+      eyeW.position.set(ex, 0.06, 0.168);
+      eyeW.scale.set(0.95, 1.25, 0.6);
+      jerryHeadGroup.add(eyeW);
+
+      const eyeP = new THREE.Mesh(
+        new THREE.SphereGeometry(0.024, 10, 10),
+        matDark
+      );
+      eyeP.position.set(ex, 0.06, 0.192);
+      jerryHeadGroup.add(eyeP);
+    });
+
+    // Jerry Fast Running Legs
+    const jerryLeftLegPivot = new THREE.Group();
+    jerryLeftLegPivot.position.set(-0.085, 0.02, 0);
+    jerryBodyTilt.add(jerryLeftLegPivot);
+
+    const jerryRightLegPivot = new THREE.Group();
+    jerryRightLegPivot.position.set(0.085, 0.02, 0);
+    jerryBodyTilt.add(jerryRightLegPivot);
+
+    [jerryLeftLegPivot, jerryRightLegPivot].forEach((legPivot) => {
+      const leg = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.042, 0.12, 6, 10),
+        matJerryFur
+      );
+      leg.position.set(0, -0.08, 0);
+      legPivot.add(leg);
+
+      const foot = new THREE.Mesh(
+        new THREE.SphereGeometry(0.06, 12, 12),
+        matJerryTan
+      );
+      foot.position.set(0, -0.17, 0.04);
+      foot.scale.set(0.88, 0.6, 1.4);
+      foot.castShadow = true;
+      legPivot.add(foot);
+    });
+
+    // Jerry Arms clutching a big stolen Swiss Cheese Wedge while running!
+    const jerryArmsGroup = new THREE.Group();
+    jerryArmsGroup.position.set(0, 0.25, 0.1);
+    jerryBodyTilt.add(jerryArmsGroup);
+
+    [-0.12, 0.12].forEach((ax) => {
+      const arm = new THREE.Mesh(
+        new THREE.CapsuleGeometry(0.04, 0.14, 6, 10),
+        matJerryFur
+      );
+      arm.position.set(ax, 0.02, 0.09);
+      arm.rotation.x = 1.05;
+      arm.rotation.z = ax < 0 ? -0.4 : 0.4;
+      jerryArmsGroup.add(arm);
+    });
+
+    // Extruded Cheese Wedge in Jerry's paws
+    const cheeseShape = new THREE.Shape();
+    cheeseShape.moveTo(0, 0);
+    cheeseShape.lineTo(0.28, 0.1);
+    cheeseShape.lineTo(0.28, -0.1);
+    cheeseShape.closePath();
+
+    const cheeseGeo = new THREE.ExtrudeGeometry(cheeseShape, {
+      depth: 0.16,
+      bevelEnabled: true,
+      bevelThickness: 0.018,
+      bevelSize: 0.015,
+      bevelSegments: 2,
+    });
+    const stolenCheese = new THREE.Mesh(cheeseGeo, matCheese);
+    stolenCheese.position.set(-0.08, 0.01, 0.18);
+    stolenCheese.rotation.y = 0.2;
+    stolenCheese.castShadow = true;
+    jerryArmsGroup.add(stolenCheese);
+
+    const holeGeo = new THREE.SphereGeometry(0.024, 8, 8);
+    [
+      [0.08, 0.09, 0.25],
+      [0.14, 0.05, 0.18],
+    ].forEach(([hx, hy, hz]) => {
+      const hole = new THREE.Mesh(holeGeo, matCheeseHole);
+      hole.position.set(hx, hy, hz);
+      jerryArmsGroup.add(hole);
+    });
+
+    // Jerry Tail streaming behind
+    const jerryTail = new THREE.Mesh(
+      new THREE.CapsuleGeometry(0.018, 0.34, 6, 10),
+      matPink
+    );
+    jerryTail.position.set(0, 0.08, -0.22);
+    jerryTail.rotation.x = -1.05;
+    jerryBodyTilt.add(jerryTail);
+
+    // =========================================================================
+    // DUST PUFFS BEHIND BOTH TOM AND JERRY
+    // =========================================================================
+    const tomDustPuffs: {mesh: THREE.Mesh; offset: number}[] = [];
+    const jerryDustPuffs: {mesh: THREE.Mesh; offset: number}[] = [];
+    const dustGeo = new THREE.SphereGeometry(0.08, 10, 10);
+    for (let i = 0; i < 4; i++) {
+      const tPuff = new THREE.Mesh(dustGeo, matDust.clone());
+      stageGroup.add(tPuff);
+      tomDustPuffs.push({mesh: tPuff, offset: i / 4});
+
+      const jPuff = new THREE.Mesh(dustGeo, matDust.clone());
+      stageGroup.add(jPuff);
+      jerryDustPuffs.push({mesh: jPuff, offset: i / 4});
     }
 
-    // Compile shaders on GPU
     if (!isSoftwareGl) {
       renderer.compile(scene, camera);
     }
 
-    // ResizeObserver for crisp layout
     const resizeObserver = new ResizeObserver(() => {
       if (!container) return;
       const w = Math.max(container.clientWidth, 1);
       const h = Math.max(container.clientHeight, 1);
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
+      updateCameraFraming(w, h);
       renderer.setSize(w, h);
     });
     resizeObserver.observe(container);
 
-    // Animation loop
     const clock = new THREE.Clock();
     let frameId = 0;
     let disposed = false;
@@ -560,64 +863,106 @@ export function ChefCookingCanvas({
       frameId = window.setTimeout(poll, 5);
     }
 
+    const trackRx = 1.65;
+    const trackRz = 0.98;
+
     const tick = () => {
       if (disposed) return;
       const t = clock.getElapsedTime();
 
-      // Gentle chef bounce and cheerful head nod
-      chefGroup.position.y = Math.abs(Math.sin(t * 2.8)) * 0.04;
-      headGroup.rotation.z = Math.sin(t * 1.5) * 0.05;
-      headGroup.rotation.y = Math.sin(t * 1.0) * 0.15;
-      hatGroup.rotation.z = Math.sin(t * 2.8 - 0.5) * 0.04;
+      // Continuous oval chase speed around the kitchen table
+      const chaseAngle = t * 1.45;
+      const tomAngle = chaseAngle - 0.55;
+      // Jerry sprints ahead of Tom and weaves/dodges dynamically!
+      const jerryAngle = chaseAngle + 0.35 + Math.sin(t * 2.2) * 0.08;
 
-      // Rhythmic pan flip cycle (~1.9s per toss)
-      const cycle = (t * 0.52) % 1;
-      // Pan flicks upward during [0.0, 0.25]
-      const panFlick =
-        cycle < 0.25
-          ? Math.sin((cycle / 0.25) * Math.PI)
-          : -Math.sin(t * 3.8) * 0.06;
-      rightArmPivot.rotation.x = -0.25 * panFlick;
-      panGroup.rotation.x = -0.35 * panFlick;
+      // 1. TOM POSITION & TANGENT HEADING
+      const tomX = Math.sin(tomAngle) * trackRx;
+      const tomZ = Math.cos(tomAngle) * trackRz;
+      const tomDx = Math.cos(tomAngle) * trackRx;
+      const tomDz = -Math.sin(tomAngle) * trackRz;
 
-      // Left arm cheers / stirs gently
-      leftArmPivot.rotation.x = Math.sin(t * 2.8) * 0.16;
-      leftArmPivot.rotation.z = Math.cos(t * 1.5) * 0.08;
+      const tomStrideSpeed = t * 12.0;
+      const tomStride = Math.sin(tomStrideSpeed);
+      const tomHop = Math.abs(tomStride) * 0.15;
 
-      // Food toss parabolic arc synced with pan flick
-      if (cycle < 0.72) {
-        const arc = cycle / 0.72;
-        const heightOffset = Math.sin(arc * Math.PI) * 0.78;
-        foodGroup.position.y = 0.92 + heightOffset;
-        pancake.rotation.x = arc * Math.PI * 2;
-        tomato1.position.y = 0.06 + Math.sin(arc * Math.PI) * 0.16;
-        tomato2.position.y = 0.05 + Math.sin(arc * Math.PI) * 0.22;
-      } else {
-        foodGroup.position.y = 0.92;
-        pancake.rotation.x = 0;
-        tomato1.position.y = 0.06;
-        tomato2.position.y = 0.05;
-      }
+      tomRoot.position.set(tomX, 0.02 + tomHop, tomZ);
+      tomRoot.rotation.y = Math.atan2(tomDx, tomDz);
 
-      // Stove glow subtle flicker
-      stoveGlow.intensity = 1.45 + Math.sin(t * 8) * 0.2;
+      // Tom rapid legs + pan swinging down to beat Jerry!
+      tomLeftLegPivot.rotation.x = tomStride * 1.2;
+      tomRightLegPivot.rotation.x = -tomStride * 1.2;
 
-      // Steam puffs rising and fading smoothly
-      for (const puff of steamPuffs) {
-        const phase = (t * 0.38 + puff.offset) % 1;
+      // Whack! Swings frying pan overhead & down every ~0.85s
+      const panWhack = Math.sin(t * 7.2);
+      tomRightArmPivot.rotation.x = -0.85 + panWhack * 1.15;
+      tomRightArmPivot.rotation.z = Math.cos(t * 7.2) * 0.22;
+      tomLeftArmPivot.rotation.x = tomStride * 0.85;
+
+      tomBodyTilt.rotation.z = Math.sin(tomStrideSpeed) * 0.1;
+      tomHeadGroup.rotation.z = -Math.sin(tomStrideSpeed) * 0.07;
+      tomHatGroup.rotation.x = -0.24 - Math.abs(tomStride) * 0.15;
+      tomHatGroup.rotation.z = Math.sin(tomStrideSpeed - 0.6) * 0.12;
+      tomTailPivot.rotation.y = Math.sin(t * 9) * 0.4;
+
+      // 2. JERRY POSITION, WEAVING DODGE & TANGENT HEADING
+      // Jerry zig-zags radially (in-and-out) to dodge Tom's frying pan!
+      const dodgeWeave = Math.sin(t * 6.5) * 0.32;
+      const jerryRx = trackRx + dodgeWeave;
+      const jerryRz = trackRz + dodgeWeave * 0.75;
+
+      const jerryX = Math.sin(jerryAngle) * jerryRx;
+      const jerryZ = Math.cos(jerryAngle) * jerryRz;
+      const jerryDx = Math.cos(jerryAngle) * jerryRx + Math.sin(jerryAngle) * Math.cos(t * 6.5) * 0.6;
+      const jerryDz = -Math.sin(jerryAngle) * jerryRz + Math.cos(jerryAngle) * Math.cos(t * 6.5) * 0.45;
+
+      const jerryStrideSpeed = t * 16.5;
+      const jerryStride = Math.sin(jerryStrideSpeed);
+      // Playful dodge leap synced with Tom's pan swings!
+      const dodgeLeap = Math.max(0, Math.sin(t * 7.2 - 0.4)) * 0.24;
+
+      jerryRoot.position.set(jerryX, 0.02 + Math.abs(jerryStride) * 0.07 + dodgeLeap, jerryZ);
+      jerryRoot.rotation.y = Math.atan2(jerryDx, jerryDz);
+      // Bank left/right cleanly in Jerry's local frame as he weaves!
+      jerryBodyTilt.rotation.z = -Math.cos(t * 6.5) * 0.25;
+
+      jerryLeftLegPivot.rotation.x = jerryStride * 1.25;
+      jerryRightLegPivot.rotation.x = -jerryStride * 1.25;
+
+      // Jerry looks ahead to steer, then glances back over his shoulder at Tom while dodging!
+      jerryHeadGroup.rotation.y = -0.35 - (Math.sin(t * 2.8) + 1) * 0.85;
+      jerryTail.rotation.z = Math.sin(t * 11) * 0.35;
+
+      // 3. DUST PUFFS BEHIND BOTH RUNNERS
+      const tomBackX = -tomDx / Math.hypot(tomDx, tomDz);
+      const tomBackZ = -tomDz / Math.hypot(tomDx, tomDz);
+      for (const puff of tomDustPuffs) {
+        const phase = (t * 2.0 + puff.offset) % 1;
         puff.mesh.position.set(
-          0.32 + puff.driftX * phase * 2.2,
-          1.05 + phase * 1.05,
-          0.88 + puff.driftZ * phase * 2.2
+          tomX + tomBackX * (0.28 + phase * 0.7),
+          0.09 + phase * 0.24,
+          tomZ + tomBackZ * (0.28 + phase * 0.7)
         );
-        const s = 0.65 + phase * 1.15;
+        const s = 0.55 + phase * 1.05;
         puff.mesh.scale.set(s, s, s);
         const mat = puff.mesh.material as THREE.MeshStandardMaterial;
         mat.opacity = Math.sin(phase * Math.PI) * 0.42;
       }
 
-      // Gentle camera showcase sway
-      stageGroup.rotation.y = Math.sin(t * 0.5) * 0.18;
+      const jerryBackX = -jerryDx / Math.hypot(jerryDx, jerryDz);
+      const jerryBackZ = -jerryDz / Math.hypot(jerryDx, jerryDz);
+      for (const puff of jerryDustPuffs) {
+        const phase = (t * 2.4 + puff.offset) % 1;
+        puff.mesh.position.set(
+          jerryX + jerryBackX * (0.18 + phase * 0.5),
+          0.07 + phase * 0.16,
+          jerryZ + jerryBackZ * (0.18 + phase * 0.5)
+        );
+        const s = 0.35 + phase * 0.65;
+        puff.mesh.scale.set(s, s, s);
+        const mat = puff.mesh.material as THREE.MeshStandardMaterial;
+        mat.opacity = Math.sin(phase * Math.PI) * 0.38;
+      }
 
       renderer.render(scene, camera);
 
