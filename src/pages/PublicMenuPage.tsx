@@ -258,32 +258,41 @@ export function PublicMenuPage() {
                   </h2>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                  {items.map((product) => (
-                    <article
-                      key={product.id}
-                      className={`group rounded-xl overflow-hidden border ${theme.border} ${theme.cardBg} transition-transform duration-200 hover:-translate-y-0.5`}
-                    >
-                      <div className="aspect-[4/3] w-full overflow-hidden">
-                        <MenuImage
-                          src={product.image_url}
-                          alt={product.name}
-                          fallbackLabel={product.name}
-                          darkSurface={theme.isDark}
-                          className="h-full w-full transition-transform duration-300 group-hover:scale-[1.02]"
-                        />
-                      </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-7">
+                  {items.map((product) => {
+                    const hasPhoto = Boolean(product.image_url && product.image_url !== 'no-image');
+                    return (
+                      <article
+                        key={product.id}
+                        className={`group rounded-xl overflow-hidden border ${theme.border} ${theme.cardBg} transition-transform duration-200 hover:-translate-y-0.5 flex flex-col justify-between`}
+                      >
+                        {hasPhoto ? (
+                          <div className="aspect-[4/3] w-full overflow-hidden">
+                            <MenuImage
+                              src={product.image_url}
+                              alt={product.name}
+                              fallbackLabel={product.name}
+                              darkSurface={theme.isDark}
+                              className="h-full w-full transition-transform duration-300 group-hover:scale-[1.02]"
+                            />
+                          </div>
+                        ) : null}
 
-                      <div className="px-4 py-4 sm:px-5 sm:py-4 flex items-baseline justify-between gap-4">
-                        <h3 className="text-base font-semibold leading-snug tracking-tight">
-                          {product.name}
-                        </h3>
-                        <p className="text-[15px] font-medium tabular-nums whitespace-nowrap shrink-0">
-                          {formatPrice(product.price, currencySymbol)}
-                        </p>
-                      </div>
-                    </article>
-                  ))}
+                        <div
+                          className={`px-4 sm:px-5 flex items-baseline justify-between gap-4 ${
+                            hasPhoto ? 'py-4' : 'py-4 sm:py-5'
+                          }`}
+                        >
+                          <h3 className="text-base font-semibold leading-snug tracking-tight">
+                            {product.name}
+                          </h3>
+                          <p className="text-[15px] font-medium tabular-nums whitespace-nowrap shrink-0">
+                            {formatPrice(product.price, currencySymbol)}
+                          </p>
+                        </div>
+                      </article>
+                    );
+                  })}
                 </div>
               </section>
             ))}

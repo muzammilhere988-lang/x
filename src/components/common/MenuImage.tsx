@@ -21,7 +21,7 @@ export function MenuImage({
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  if (!src || hasError) {
+  if (!src || src === 'no-image' || hasError) {
     return (
       <div
         className={`flex flex-col items-center justify-center gap-2 select-none ${

@@ -51,7 +51,11 @@ export function ProductFormModal({
       setIsActive(editingProduct.is_active);
       setIsAvailable(editingProduct.is_available);
       setAdminNotes(editingProduct.admin_notes ?? '');
-      setPreviewUrl(editingProduct.image_url);
+      setPreviewUrl(
+        editingProduct.image_url && editingProduct.image_url !== 'no-image'
+          ? editingProduct.image_url
+          : ''
+      );
     } else {
       setName('');
       setPriceInput('');
@@ -128,17 +132,12 @@ export function ProductFormModal({
       return;
     }
 
-    if (!editingProduct && !selectedFile) {
-      setError('Please upload a food photograph for this product.');
-      return;
-    }
-
     setSubmitting(true);
     let newlyUploadedPath: string | null = null;
 
     try {
-      let imagePath = editingProduct?.image_path ?? '';
-      let imageUrl = editingProduct?.image_url ?? '';
+      let imagePath = editingProduct?.image_path || 'no-image';
+      let imageUrl = editingProduct?.image_url || 'no-image';
 
       if (selectedFile) {
         const uploaded = await uploadMenuImage(selectedFile, 'products', (pct, stage) => {
@@ -250,7 +249,7 @@ export function ProductFormModal({
           {/* Image Upload */}
           <div>
             <label className="block text-sm font-medium text-stone-800 mb-1.5">
-              Product Photograph {editingProduct ? '(Optional to replace)' : '*'}
+              Product Photograph {editingProduct ? '(Optional to replace)' : '(Optional)'}
             </label>
 
             <div className="flex items-start gap-4">

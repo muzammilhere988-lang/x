@@ -1,11 +1,12 @@
 import {useMemo, useState} from 'react';
-import {Eye, EyeOff, Pencil, Plus, Search, Trash2} from 'lucide-react';
+import {Eye, EyeOff, ListPlus, Pencil, Plus, Search, Trash2} from 'lucide-react';
 import {deleteProduct, updateProduct} from '../../lib/menuApi';
 import {deleteMenuImage} from '../../lib/storage';
 import type {Category, Product} from '../../types/menu';
 import {formatPrice} from '../../utils/formatters';
 import {ConfirmDialog} from '../common/ConfirmDialog';
 import {MenuImage} from '../common/MenuImage';
+import {BulkImportModal} from './BulkImportModal';
 import {ProductFormModal} from './ProductFormModal';
 
 interface ProductsSectionProps {
@@ -14,6 +15,7 @@ interface ProductsSectionProps {
   currencySymbol: string;
   loading: boolean;
   onProductsChange: (next: Product[]) => void;
+  onCategoriesChange: (next: Category[]) => void;
   onGoToCategories: () => void;
 }
 
@@ -23,6 +25,7 @@ export function ProductsSection({
   currencySymbol,
   loading,
   onProductsChange,
+  onCategoriesChange,
   onGoToCategories,
 }: ProductsSectionProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,6 +33,7 @@ export function ProductsSection({
   const [statusFilter, setStatusFilter] = useState<'all' | 'visible' | 'hidden'>('all');
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -193,14 +197,25 @@ export function ProductsSection({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleOpenAdd}
-          className="h-10 px-4 inline-flex items-center justify-center gap-2 text-sm font-medium bg-stone-900 text-white rounded-lg hover:bg-stone-800 transition-colors whitespace-nowrap shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Product</span>
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setBulkModalOpen(true)}
+            className="h-10 px-3.5 inline-flex items-center justify-center gap-2 text-sm font-medium text-stone-800 bg-white border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors whitespace-nowrap"
+          >
+            <ListPlus className="w-4 h-4" />
+            <span>Bulk Import</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenAdd}
+            className="h-10 px-4 inline-flex items-center justify-center gap-2 text-sm font-medium bg-stone-900 text-white rounded-lg hover:bg-stone-800 transition-colors whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Product</span>
+          </button>
+        </div>
       </div>
 
       {/* Product List */}
@@ -379,6 +394,31 @@ export function ProductsSection({
         }}
         onSaved={handleSaved}
         onGoToCategories={onGoToCategories}
+      />
+
+      <BulkImportModal
+        open={bulkModalOpen}
+        existingCategories={categories}
+        existingProducts={products}
+        currencySymbol={currencySymbol}
+        onClose={() => setBulkModalOpen(false)}
+        onImported={({addedCategories, addedProducts, skippedCount}) => {
+          if (addedCategories.length > 0) {
+            onCategoriesChange([...categories, ...addedCategories]);
+          }
+          if (addedProducts.length > 0) {
+            onProductsChange([...addedProducts, ...products]);
+          }
+          setBulkModalOpen(false);
+          setFeedback({
+            type: 'success',
+            message: `Imported ${addedProducts.length} item${addedProducts.length === 1 ? '' : 's'}${
+              addedCategories.length > 0
+                ? ` across ${addedCategories.length} new categor${addedCategories.length === 1 ? 'y' : 'ies'}`
+                : ''
+            }${skippedCount > 0 ? ` (${skippedCount} duplicate${skippedCount === 1 ? '' : 's'} skipped)` : ''}.`,
+          });
+        }}
       />
 
       <ConfirmDialog

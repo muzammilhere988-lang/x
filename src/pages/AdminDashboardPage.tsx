@@ -138,6 +138,7 @@ export function AdminDashboardPage({auth}: AdminDashboardPageProps) {
           currencySymbol={currencySymbol}
           loading={loading}
           onProductsChange={setProducts}
+          onCategoriesChange={setCategories}
           onGoToCategories={() => handleSelectSection('categories')}
         />
       ) : null}
