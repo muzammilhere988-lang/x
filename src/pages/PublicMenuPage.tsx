@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Link} from 'react-router-dom';
 import {UtensilsCrossed} from 'lucide-react';
 import {fetchPublicMenuData} from '../lib/menuApi';
 import {isSupabaseConfigured} from '../lib/supabase';
@@ -110,7 +111,9 @@ export function PublicMenuPage() {
   }
 
   return (
-    <div className={`min-h-screen ${theme.pageBg} ${theme.textPrimary} transition-colors duration-200`}>
+    <div
+      className={`min-h-screen flex flex-col ${theme.pageBg} ${theme.textPrimary} transition-colors duration-200`}
+    >
       {/* Business Header */}
       <header className={`border-b ${theme.border}`}>
         <div className="max-w-5xl mx-auto px-5 sm:px-8 pt-10 pb-8 sm:pt-14 sm:pb-10 text-center">
@@ -172,7 +175,7 @@ export function PublicMenuPage() {
       ) : null}
 
       {/* Main Catalogue */}
-      <main className="max-w-5xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
+      <main className="flex-1 w-full max-w-5xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
         {loading ? (
           <div className="space-y-12" aria-busy="true" aria-label="Loading menu">
             <div>
@@ -265,14 +268,25 @@ export function PublicMenuPage() {
         )}
       </main>
 
-      {/* Quiet Footer (Strictly no admin links, no telemetry, no clutter) */}
-      {businessName ? (
-        <footer className={`border-t ${theme.border} mt-8`}>
-          <div className="max-w-5xl mx-auto px-5 sm:px-8 py-6 text-center">
-            <p className={`text-xs ${theme.textSecondary}`}>{businessName}</p>
-          </div>
-        </footer>
-      ) : null}
+      {/* Quiet Footer with discreet Admin Login link */}
+      <footer className={`border-t ${theme.border} mt-8`}>
+        <div
+          className={`max-w-5xl mx-auto px-5 sm:px-8 py-6 flex flex-wrap items-center justify-center gap-3 text-xs ${theme.textSecondary}`}
+        >
+          {businessName ? (
+            <>
+              <span>{businessName}</span>
+              <span aria-hidden="true">·</span>
+            </>
+          ) : null}
+          <Link
+            to="/admin/login"
+            className="hover:underline underline-offset-4 transition-opacity hover:opacity-80"
+          >
+            Admin Login
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }
