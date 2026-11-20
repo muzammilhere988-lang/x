@@ -1,0 +1,6 @@
+{
+  "name": "QR Menu — Digital Menu System",
+  "description": "Universal digital QR menu system for restaurants, cafés, bakeries, and food businesses powered by Supabase.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
