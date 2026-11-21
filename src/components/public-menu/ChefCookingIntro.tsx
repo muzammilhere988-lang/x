@@ -1,6 +1,6 @@
-import {lazy, Suspense, useEffect, useState} from 'react';
+import {lazy, Suspense, useEffect, useRef, useState} from 'react';
 import {motion, AnimatePresence} from 'motion/react';
-import {ChefHat} from 'lucide-react';
+import {INTRO_SCENES, type IntroSceneId} from './introScenes';
 
 const ChefCookingCanvas = lazy(() =>
   import('./ChefCookingCanvas').then((mod) => ({default: mod.ChefCookingCanvas}))
@@ -38,6 +38,7 @@ const FUNNY_TAGLINES = [
 ];
 
 const LAST_TAGLINE_STORAGE_KEY = 'qr_menu_recent_taglines';
+const LAST_SCENE_STORAGE_KEY = 'qr_menu_recent_scenes';
 
 function pickFreshTagline(): string {
   if (typeof window === 'undefined') {
@@ -72,6 +73,46 @@ function pickFreshTagline(): string {
   return FUNNY_TAGLINES[nextIndex];
 }
 
+function pickFreshScene(): IntroSceneId {
+  if (typeof window === 'undefined') {
+    return INTRO_SCENES[0].id;
+  }
+
+  let recentIndices: number[] = [];
+  try {
+    const stored = window.localStorage.getItem(LAST_SCENE_STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        recentIndices = parsed.filter(
+          (n): n is number => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n < INTRO_SCENES.length
+        );
+      }
+    }
+  } catch {
+    // Ignore storage access errors in private browsing
+  }
+
+  // Avoid repeating the last 2 shown animations (just like funny taglines)
+  const recentSet = new Set(recentIndices.slice(-2));
+  const availableIndices = INTRO_SCENES.map((_, idx) => idx).filter((idx) => !recentSet.has(idx));
+  const pool =
+    availableIndices.length > 0
+      ? availableIndices
+      : INTRO_SCENES.map((_, idx) => idx).filter((idx) => idx !== recentIndices[recentIndices.length - 1]);
+  const finalPool = pool.length > 0 ? pool : INTRO_SCENES.map((_, idx) => idx);
+  const nextIndex = finalPool[Math.floor(Math.random() * finalPool.length)];
+
+  try {
+    const updatedHistory = [...recentIndices.slice(-2), nextIndex];
+    window.localStorage.setItem(LAST_SCENE_STORAGE_KEY, JSON.stringify(updatedHistory));
+  } catch {
+    // Ignore storage access errors
+  }
+
+  return INTRO_SCENES[nextIndex].id;
+}
+
 const INTRO_DURATION_MS = 5000;
 
 interface ChefCookingIntroProps {
@@ -96,7 +137,11 @@ export function ChefCookingIntro({
   onComplete,
 }: ChefCookingIntroProps) {
   const [visible, setVisible] = useState(true);
+  const [sceneId] = useState<IntroSceneId>(() => pickFreshScene());
   const [tagline] = useState<string>(() => pickFreshTagline());
+
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     if (
@@ -104,7 +149,7 @@ export function ChefCookingIntro({
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
     ) {
       setVisible(false);
-      onComplete();
+      onCompleteRef.current();
       return;
     }
 
@@ -113,14 +158,14 @@ export function ChefCookingIntro({
     }, INTRO_DURATION_MS);
 
     return () => window.clearTimeout(timer);
-  }, [onComplete]);
+  }, []);
 
   const handleDismiss = () => {
     setVisible(false);
   };
 
   return (
-    <AnimatePresence onExitComplete={onComplete}>
+    <AnimatePresence onExitComplete={() => onCompleteRef.current()}>
       {visible ? (
         <motion.div
           key="chef-cooking-intro"
@@ -142,18 +187,11 @@ export function ChefCookingIntro({
             ) : null}
           </div>
 
-          {/* 3D Tom & Jerry Chase Stage */}
+          {/* Single 3D Animation Stage (fresh non-repeating scene picked automatically per scan) */}
           <div className="w-full max-w-xl flex-1 max-h-[420px] min-h-[260px] flex items-center justify-center relative">
-            <Suspense
-              fallback={
-                <div className="flex flex-col items-center justify-center gap-3">
-                  <div className="w-16 h-16 rounded-full border border-current/15 flex items-center justify-center animate-bounce">
-                    <ChefHat className="w-7 h-7" strokeWidth={1.5} />
-                  </div>
-                </div>
-              }
-            >
+            <Suspense fallback={null}>
               <ChefCookingCanvas
+                sceneId={sceneId}
                 backgroundColorHex={backgroundColorHex}
                 isDarkTheme={isDarkTheme}
               />
@@ -167,7 +205,7 @@ export function ChefCookingIntro({
               animate={{opacity: 1, y: 0}}
               transition={{duration: 0.45, delay: 0.15}}
             >
-              <h2 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight leading-snug">
+              <h2 className="font-serif text-2xl sm:text-3xl font-medium tracking-tight leading-snug text-balance">
                 {tagline}
               </h2>
               <p className={`mt-1.5 text-xs sm:text-sm ${themeSubTextClass}`}>
