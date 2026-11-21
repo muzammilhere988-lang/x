@@ -49,10 +49,19 @@ export function MenuImage({
 
   return (
     <div
-      className={`relative overflow-hidden ${
-        darkSurface ? 'bg-[#26211D]' : 'bg-[#EFE9DF]'
+      className={`relative overflow-hidden flex items-center justify-center ${
+        darkSurface ? 'bg-[#26211D]' : 'bg-[#F3EDE2]'
       } ${className}`}
     >
+      {isLoaded ? (
+        <img
+          src={src}
+          alt=""
+          aria-hidden="true"
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 h-full w-full object-cover scale-110 blur-md opacity-25 pointer-events-none select-none"
+        />
+      ) : null}
       <img
         src={src}
         alt={alt}
@@ -61,7 +70,7 @@ export function MenuImage({
         referrerPolicy="no-referrer"
         onLoad={() => setIsLoaded(true)}
         onError={() => setHasError(true)}
-        className={`h-full w-full object-cover transition-opacity duration-300 ${
+        className={`relative z-10 h-full w-full object-contain transition-opacity duration-300 ${
           isLoaded ? 'opacity-100' : 'opacity-0'
         }`}
       />

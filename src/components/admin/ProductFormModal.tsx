@@ -316,7 +316,7 @@ export function ProductFormModal({
                     alt="Product preview"
                     referrerPolicy="no-referrer"
                     onError={() => setPreviewError(true)}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain p-1"
                   />
                 ) : (
                   <Upload className="w-5 h-5 text-stone-400" />

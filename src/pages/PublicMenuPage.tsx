@@ -442,7 +442,7 @@ export function PublicMenuPage() {
                               alt={product.name}
                               fallbackLabel={product.name}
                               darkSurface={theme.isDark}
-                              className="h-full w-full transition-transform duration-300 group-hover:scale-[1.02]"
+                              className="h-full w-full"
                             />
                           ) : (
                             <DishArtwork
