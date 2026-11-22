@@ -220,14 +220,14 @@ export function ChefCookingIntro({
                 animate={{scaleX: 1}}
                 transition={{duration: INTRO_DURATION_MS / 1000, ease: 'linear'}}
                 style={{transformOrigin: 'left'}}
-                className="h-full w-full bg-current opacity-50"
+                className={`h-full w-full ${isDarkTheme ? 'bg-[#D1B072]' : 'bg-[#9A7432]'}`}
               />
             </div>
 
             <button
               type="button"
               onClick={handleDismiss}
-              className={`min-h-[44px] px-5 py-2.5 text-xs font-medium rounded-lg border ${themeBorderClass} ${themeTextClass} hover:opacity-80 transition-opacity`}
+              className={`min-h-[44px] px-5 py-2.5 text-xs font-medium rounded-lg border ${themeBorderClass} ${themeTextClass} hover:border-[#B69150] transition-colors cursor-pointer`}
             >
               View Menu
             </button>

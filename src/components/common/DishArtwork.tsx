@@ -86,9 +86,9 @@ export function DishArtwork({
   const flavorKind = detectFlavorKind(productName, categoryName);
   const accent = FLAVOR_ACCENTS[flavorKind];
 
-  const bgColor = darkSurface ? '#251F1B' : '#F6F0E6';
-  const plateFill = darkSurface ? '#332B25' : '#FFFFFF';
-  const plateStroke = darkSurface ? '#4B4037' : '#E2D7C5';
+  const bgColor = darkSurface ? '#1A1816' : '#F3F1EC';
+  const plateFill = darkSurface ? '#25221E' : '#FFFFFF';
+  const plateStroke = darkSurface ? '#38342E' : '#E2DDD3';
   const crustFill = '#D7944A';
   const crustDark = '#A96628';
   const cheeseFill = '#F6C84C';

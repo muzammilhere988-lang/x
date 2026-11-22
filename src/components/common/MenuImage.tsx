@@ -31,8 +31,8 @@ export function MenuImage({
       <div
         className={`flex flex-col items-center justify-center gap-2 select-none ${
           darkSurface
-            ? 'bg-[#26211D] text-[#A3988C]'
-            : 'bg-[#EFE9DF] text-[#7A7065]'
+            ? 'bg-[#1A1816] text-[#A39C91]'
+            : 'bg-[#F1EFE9] text-[#6E6960]'
         } ${className}`}
         role="img"
         aria-label={alt}
@@ -50,7 +50,7 @@ export function MenuImage({
   return (
     <div
       className={`relative overflow-hidden flex items-center justify-center ${
-        darkSurface ? 'bg-[#26211D]' : 'bg-[#F3EDE2]'
+        darkSurface ? 'bg-[#1A1816]' : 'bg-[#F1EFE9]'
       } ${className}`}
     >
       {isLoaded ? (
@@ -59,7 +59,7 @@ export function MenuImage({
           alt=""
           aria-hidden="true"
           referrerPolicy="no-referrer"
-          className="absolute inset-0 h-full w-full object-cover scale-110 blur-md opacity-25 pointer-events-none select-none"
+          className="absolute inset-0 h-full w-full object-cover scale-110 blur-xl opacity-20 pointer-events-none select-none"
         />
       ) : null}
       <img
@@ -70,7 +70,7 @@ export function MenuImage({
         referrerPolicy="no-referrer"
         onLoad={() => setIsLoaded(true)}
         onError={() => setHasError(true)}
-        className={`relative z-10 h-full w-full object-contain transition-opacity duration-300 ${
+        className={`relative z-10 h-full w-full object-contain contrast-[1.03] saturate-[0.97] transition-opacity duration-300 ${
           isLoaded ? 'opacity-100' : 'opacity-0'
         }`}
       />
