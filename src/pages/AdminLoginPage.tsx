@@ -13,6 +13,8 @@ export function AdminLoginPage() {
   const [checkingSession, setCheckingSession] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockedUntil, setLockedUntil] = useState<number>(0);
 
   useEffect(() => {
     document.title = 'Admin Sign In — QR Menu';
@@ -48,6 +50,13 @@ export function AdminLoginPage() {
     e.preventDefault();
     setError('');
 
+    const now = Date.now();
+    if (lockedUntil > now) {
+      const waitSeconds = Math.ceil((lockedUntil - now) / 1000);
+      setError(`Too many failed attempts. Please wait ${waitSeconds} seconds before trying again.`);
+      return;
+    }
+
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password) {
       setError('Please enter both your administrator email and password.');
@@ -57,9 +66,18 @@ export function AdminLoginPage() {
     setSubmitting(true);
     try {
       await signInAdmin(trimmedEmail, password);
+      setFailedAttempts(0);
+      setLockedUntil(0);
       navigate('/admin/dashboard', {replace: true});
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to sign in.');
+      const nextFailures = failedAttempts + 1;
+      setFailedAttempts(nextFailures);
+      if (nextFailures >= 5) {
+        setLockedUntil(Date.now() + 30_000);
+        setError('Too many failed sign-in attempts. Please wait 30 seconds before trying again.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Unable to sign in.');
+      }
     } finally {
       setSubmitting(false);
     }

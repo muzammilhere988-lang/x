@@ -1,9 +1,9 @@
 import {useEffect, useRef, useState, type ChangeEvent, type FormEvent} from 'react';
 import {Trash2, Upload} from 'lucide-react';
 import {saveBusinessSettings} from '../../lib/menuApi';
-import {deleteMenuImage, uploadMenuImage, validateImageFile} from '../../lib/storage';
+import {deleteMenuImage, uploadMenuImage, validateImageFileBytes} from '../../lib/storage';
 import type {BusinessSettings, MenuThemeId} from '../../types/menu';
-import {validatePublicMenuUrl} from '../../utils/formatters';
+import {sanitizeImageSrc, validatePublicMenuUrl} from '../../utils/formatters';
 import {MENU_THEMES} from '../public-menu/themeConfig';
 
 interface SettingsSectionProps {
@@ -66,12 +66,13 @@ export function SettingsSection({
     };
   }, [pendingLogoPreview]);
 
-  const handleLogoPick = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleLogoPick = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const check = validateImageFile(file);
+    const check = await validateImageFileBytes(file);
     if (!check.valid) {
+      e.target.value = '';
       setFeedback({type: 'error', message: check.error || 'Invalid logo file.'});
       return;
     }
@@ -170,7 +171,7 @@ export function SettingsSection({
     );
   }
 
-  const displayedLogo = pendingLogoPreview || logoUrl;
+  const displayedLogo = sanitizeImageSrc(pendingLogoPreview || logoUrl, {allowBlob: true});
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl space-y-6" noValidate>

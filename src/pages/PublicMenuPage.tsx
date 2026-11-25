@@ -7,7 +7,7 @@ import heroPizzaImg from '../assets/images/hero_artisan_pizza_dark_1795343481336
 import {fetchPublicMenuData} from '../lib/menuApi';
 import {isSupabaseConfigured} from '../lib/supabase';
 import type {Category, PublicMenuData, PublicProduct} from '../types/menu';
-import {formatPrice} from '../utils/formatters';
+import {formatPrice, sanitizeImageSrc} from '../utils/formatters';
 import {DishArtwork} from '../components/common/DishArtwork';
 import {MenuImage} from '../components/common/MenuImage';
 import {SetupRequiredState} from '../components/common/SetupRequiredState';
@@ -98,7 +98,7 @@ export function PublicMenuPage() {
   const currencySymbol = data?.settings?.currency_symbol || '₹';
   const businessName = data?.settings?.business_name?.trim() || DEFAULT_SHOP_NAME;
   const menuHeading = data?.settings?.menu_heading?.trim() || 'Menu';
-  const businessLogo = data?.settings?.business_logo || null;
+  const businessLogo = sanitizeImageSrc(data?.settings?.business_logo);
 
   // Group active, available products under their active categories.
   // Only categories containing at least 1 active product appear publicly.

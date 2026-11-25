@@ -1,9 +1,13 @@
 import {useEffect, useRef, useState, type ChangeEvent, type FormEvent} from 'react';
 import {Link2, Upload, X} from 'lucide-react';
 import {createProduct, updateProduct} from '../../lib/menuApi';
-import {deleteMenuImage, uploadMenuImage, validateImageFile} from '../../lib/storage';
+import {deleteMenuImage, uploadMenuImage, validateImageFileBytes} from '../../lib/storage';
 import type {Category, Product} from '../../types/menu';
-import {validateMonetaryPrice} from '../../utils/formatters';
+import {
+  sanitizeImageSrc,
+  validateExternalImageUrl,
+  validateMonetaryPrice,
+} from '../../utils/formatters';
 
 interface ProductFormModalProps {
   open: boolean;
@@ -102,12 +106,13 @@ export function ProductFormModal({
 
   if (!open) return null;
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const check = validateImageFile(file);
+    const check = await validateImageFileBytes(file);
     if (!check.valid) {
+      e.target.value = '';
       setError(check.error || 'Invalid image file.');
       return;
     }
@@ -138,7 +143,8 @@ export function ProductFormModal({
       );
       return;
     }
-    setPreviewUrl(trimmed);
+    const urlCheck = validateExternalImageUrl(trimmed);
+    setPreviewUrl(urlCheck.valid ? urlCheck.normalized : '');
   };
 
   const handleSubmit = async (e: FormEvent) => {
@@ -146,8 +152,8 @@ export function ProductFormModal({
     setError('');
 
     const trimmedName = name.trim();
-    if (!trimmedName) {
-      setError('Product name is required.');
+    if (!trimmedName || trimmedName.length > 140) {
+      setError('Product name must be between 1 and 140 characters.');
       return;
     }
 
@@ -162,18 +168,15 @@ export function ProductFormModal({
       return;
     }
 
+    let validatedExternalUrl = '';
     const trimmedExternalUrl = imageUrlInput.trim();
     if (!selectedFile && trimmedExternalUrl) {
-      try {
-        const parsed = new URL(trimmedExternalUrl);
-        if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-          setError('Image URL must start with https:// or http://');
-          return;
-        }
-      } catch {
-        setError('Please enter a valid image URL starting with https://');
+      const urlCheck = validateExternalImageUrl(trimmedExternalUrl);
+      if (!urlCheck.valid) {
+        setError(urlCheck.error || 'Please enter a valid image URL starting with https://');
         return;
       }
+      validatedExternalUrl = urlCheck.normalized;
     }
 
     setSubmitting(true);
@@ -191,9 +194,9 @@ export function ProductFormModal({
         imagePath = uploaded.path;
         imageUrl = uploaded.publicUrl;
         newlyUploadedPath = uploaded.path;
-      } else if (trimmedExternalUrl) {
+      } else if (validatedExternalUrl) {
         imagePath = 'external-url';
-        imageUrl = trimmedExternalUrl;
+        imageUrl = validatedExternalUrl;
       } else if (showUrlInput && editingProduct?.image_path === 'external-url') {
         imagePath = 'no-image';
         imageUrl = 'no-image';
@@ -310,9 +313,9 @@ export function ProductFormModal({
 
             <div className="flex items-start gap-4">
               <div className="w-28 h-24 rounded-lg border border-stone-200 bg-stone-50 overflow-hidden shrink-0 flex items-center justify-center">
-                {previewUrl && !previewError ? (
+                {sanitizeImageSrc(previewUrl, {allowBlob: true}) && !previewError ? (
                   <img
-                    src={previewUrl}
+                    src={sanitizeImageSrc(previewUrl, {allowBlob: true}) ?? ''}
                     alt="Product preview"
                     referrerPolicy="no-referrer"
                     onError={() => setPreviewError(true)}

@@ -91,6 +91,25 @@ export function BulkImportModal({
       return;
     }
 
+    if (parsed.items.length > 200) {
+      setError('Bulk import is limited to 200 items per batch to prevent accidental overload.');
+      return;
+    }
+
+    const invalidItem = parsed.items.find(
+      (item) =>
+        item.categoryName.length > 100 ||
+        item.name.length > 140 ||
+        item.price < 0 ||
+        item.price > 9999999.99
+    );
+    if (invalidItem) {
+      setError(
+        `Item "${invalidItem.name.slice(0, 40)}" exceeds maximum allowed name length (140 chars), category length (100 chars), or price limit.`
+      );
+      return;
+    }
+
     setSubmitting(true);
     try {
       const categoryByLowerName = new Map<string, Category>();

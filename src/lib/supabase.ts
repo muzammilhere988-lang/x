@@ -129,28 +129,35 @@ export const supabase: SupabaseClient | null = configInspection.isConfigured
 
 export function getFriendlyErrorMessage(error: unknown, fallback = 'An unexpected error occurred.'): string {
   if (!error) return fallback;
-  if (typeof error === 'string') return error;
+  if (typeof error === 'string') return fallback;
 
-  const errObj = error as {message?: string; code?: string; details?: string; hint?: string};
+  const errObj = error as {message?: string; code?: string};
   const message = errObj.message ?? '';
   const lower = message.toLowerCase();
 
   if (lower.includes('invalid path specified in request url')) {
-    return 'Invalid Supabase URL path. Verify VITE_SUPABASE_URL is set strictly to your root Project URL (https://your-project-ref.supabase.co) with no extra path such as /rest/v1 or /dashboard.';
+    return 'Invalid Supabase URL path configuration. Check your VITE_SUPABASE_URL setting.';
   }
   if (errObj.code === '23503') {
     return 'This item is referenced by existing products. Remove or reassign those products first.';
   }
+  if (errObj.code === '23505') {
+    return 'A record with this value already exists.';
+  }
+  if (errObj.code === '23514') {
+    return 'One or more fields failed validation rules. Please check your input values.';
+  }
   if (errObj.code === '42501' || lower.includes('row-level security')) {
-    return message
-      ? `Database permission error: ${message}. Run the latest SQL migration (002_rls_and_storage.sql) in Supabase SQL Editor.`
-      : 'Permission denied by database security policy. Ensure the SQL migrations and RLS policies are applied.';
+    return 'Permission denied by database security policy. Please sign in as the authorized administrator.';
   }
   if (lower.includes('invalid login credentials')) {
     return 'Invalid email or password. Please check your credentials and try again.';
   }
-  if (lower.includes('failed to fetch') || lower.includes('network')) {
-    return 'Unable to reach Supabase. Check your internet connection and Supabase project URL.';
+  if (lower.includes('too many requests') || lower.includes('rate limit')) {
+    return 'Too many attempts. Please wait a moment before trying again.';
   }
-  return message || fallback;
+  if (lower.includes('failed to fetch') || lower.includes('network')) {
+    return 'Unable to reach the server. Please check your internet connection.';
+  }
+  return fallback;
 }

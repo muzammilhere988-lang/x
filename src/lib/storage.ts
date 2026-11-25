@@ -25,21 +25,62 @@ export function validateImageFile(file: File): {valid: boolean; error?: string} 
   return {valid: true};
 }
 
+export async function validateImageFileBytes(file: File): Promise<{valid: boolean; error?: string}> {
+  const basic = validateImageFile(file);
+  if (!basic.valid) return basic;
+
+  try {
+    const header = new Uint8Array(await file.slice(0, 12).arrayBuffer());
+    const isJpeg = header.length >= 3 && header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff;
+    const isPng =
+      header.length >= 8 &&
+      header[0] === 0x89 &&
+      header[1] === 0x50 &&
+      header[2] === 0x4e &&
+      header[3] === 0x47 &&
+      header[4] === 0x0d &&
+      header[5] === 0x0a &&
+      header[6] === 0x1a &&
+      header[7] === 0x0a;
+    const isWebp =
+      header.length >= 12 &&
+      header[0] === 0x52 &&
+      header[1] === 0x49 &&
+      header[2] === 0x46 &&
+      header[3] === 0x46 &&
+      header[8] === 0x57 &&
+      header[9] === 0x45 &&
+      header[10] === 0x42 &&
+      header[11] === 0x50;
+
+    if (!isJpeg && !isPng && !isWebp) {
+      return {
+        valid: false,
+        error: 'The selected file does not match a valid JPG, PNG, or WebP image signature.',
+      };
+    }
+
+    return {valid: true};
+  } catch {
+    return {valid: false, error: 'Unable to verify image file contents.'};
+  }
+}
+
 /**
- * Resizes oversized photos client-side (max 1200px wide) and compresses to WebP/JPEG
- * so mobile customers on ordinary connections get fast loading times.
+ * Resizes oversized photos client-side (max 1200px wide) and re-encodes via canvas
+ * to WebP/PNG so mobile customers get fast loading times and EXIF/polyglot data is stripped.
  */
 export async function optimizeImageForUpload(
   file: File,
   maxDimension = 1200,
   quality = 0.85
-): Promise<{blob: Blob; extension: string; contentType: string}> {
+): Promise<{blob: Blob; extension: 'png' | 'webp'; contentType: 'image/png' | 'image/webp'}> {
   const bitmapUrl = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
       const image = new Image();
       image.onload = () => resolve(image);
-      image.onerror = () => reject(new Error('Failed to read selected image file.'));
+      image.onerror = () => reject(new Error('Failed to decode selected image file.'));
       image.src = bitmapUrl;
     });
 
@@ -68,9 +109,7 @@ export async function optimizeImageForUpload(
     );
 
     if (!blob) {
-      // Fallback to original file if canvas conversion fails
-      const origExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-      return {blob: file, extension: origExt, contentType: file.type};
+      throw new Error('Could not safely re-encode image for upload.');
     }
 
     return {blob, extension, contentType: outputType};
@@ -88,7 +127,7 @@ export async function uploadMenuImage(
     throw new Error('Supabase is not configured.');
   }
 
-  const validation = validateImageFile(file);
+  const validation = await validateImageFileBytes(file);
   if (!validation.valid) {
     throw new Error(validation.error);
   }
@@ -129,8 +168,11 @@ export async function uploadMenuImage(
   };
 }
 
+const SAFE_STORAGE_PATH_REGEX = /^(products|logos)\/[a-zA-Z0-9_-]+\.(webp|png|jpg|jpeg)$/;
+
 export async function deleteMenuImage(imagePath: string | null | undefined): Promise<void> {
   if (!supabase || !imagePath || imagePath === 'no-image' || imagePath === 'external-url') return;
+  if (!SAFE_STORAGE_PATH_REGEX.test(imagePath)) return;
 
   const {error} = await supabase.storage.from(MENU_IMAGES_BUCKET).remove([imagePath]);
   if (error) {

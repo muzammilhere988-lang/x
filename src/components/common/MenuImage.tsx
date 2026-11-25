@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {Utensils} from 'lucide-react';
+import {sanitizeImageSrc} from '../../utils/formatters';
 
 interface MenuImageProps {
   src: string;
@@ -21,12 +22,14 @@ export function MenuImage({
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
+  const safeSrc = sanitizeImageSrc(src);
+
   useEffect(() => {
     setHasError(false);
     setIsLoaded(false);
-  }, [src]);
+  }, [safeSrc]);
 
-  if (!src || src === 'no-image' || hasError) {
+  if (!safeSrc || hasError) {
     return (
       <div
         className={`flex flex-col items-center justify-center gap-2 select-none ${
@@ -55,7 +58,7 @@ export function MenuImage({
     >
       {isLoaded ? (
         <img
-          src={src}
+          src={safeSrc}
           alt=""
           aria-hidden="true"
           referrerPolicy="no-referrer"
@@ -63,7 +66,7 @@ export function MenuImage({
         />
       ) : null}
       <img
-        src={src}
+        src={safeSrc}
         alt={alt}
         loading={priority ? 'eager' : 'lazy'}
         decoding="async"

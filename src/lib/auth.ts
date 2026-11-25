@@ -26,16 +26,18 @@ export async function verifyAdminProfile(userId: string): Promise<AdminProfile |
 export async function getAuthorizedAdminSession(): Promise<AuthorizedAdminSession | null> {
   if (!supabase) return null;
 
-  const {data, error} = await supabase.auth.getSession();
-  if (error) {
-    throw new Error(getFriendlyErrorMessage(error, 'Unable to read authentication session.'));
-  }
-
-  if (!data.session?.user) {
+  // Verify the current JWT directly with Supabase Auth server rather than trusting localStorage cache alone
+  const {data: userData, error: userError} = await supabase.auth.getUser();
+  if (userError || !userData.user) {
     return null;
   }
 
-  const profile = await verifyAdminProfile(data.session.user.id);
+  const {data: sessionData, error: sessionError} = await supabase.auth.getSession();
+  if (sessionError || !sessionData.session) {
+    return null;
+  }
+
+  const profile = await verifyAdminProfile(userData.user.id);
   if (!profile) {
     // Sign out any authenticated user who is not registered in admin_profiles
     await supabase.auth.signOut();
@@ -43,7 +45,7 @@ export async function getAuthorizedAdminSession(): Promise<AuthorizedAdminSessio
   }
 
   return {
-    session: data.session,
+    session: sessionData.session,
     profile,
   };
 }
