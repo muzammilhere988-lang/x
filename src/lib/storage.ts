@@ -176,6 +176,6 @@ export async function deleteMenuImage(imagePath: string | null | undefined): Pro
 
   const {error} = await supabase.storage.from(MENU_IMAGES_BUCKET).remove([imagePath]);
   if (error) {
-    console.warn('Could not delete old image from storage:', error.message);
+    console.warn('Could not delete old image from storage.');
   }
 }

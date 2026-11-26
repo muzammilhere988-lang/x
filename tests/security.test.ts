@@ -1,4 +1,7 @@
 import {describe, expect, it} from 'bun:test';
+import fs from 'fs';
+import path from 'path';
+import type {SupabaseClient} from '@supabase/supabase-js';
 import {
   isPrivateOrLoopbackHost,
   isValidUuid,
@@ -10,6 +13,11 @@ import {
 import {getFriendlyErrorMessage} from '../src/lib/supabase';
 import {validateImageFileBytes} from '../src/lib/storage';
 import {
+  getAuthorizedAdminSession,
+  requireAuthorizedAdmin,
+  signInAdmin,
+} from '../src/lib/auth';
+import {
   createCategory,
   createProduct,
   deleteCategory,
@@ -18,6 +26,81 @@ import {
   updateCategory,
   updateProduct,
 } from '../src/lib/menuApi';
+
+function createMockAuthClient(options: {
+  serverUserId: string | null;
+  serverUserError?: string;
+  cachedSessionUserId?: string | null;
+  adminProfileOwnerId: string | null;
+}): {client: SupabaseClient; getSignOutCount: () => number} {
+  let signOutCount = 0;
+
+  const client = {
+    auth: {
+      getUser: async () =>
+        options.serverUserError || !options.serverUserId
+          ? {data: {user: null}, error: {message: options.serverUserError ?? 'No session'}}
+          : {data: {user: {id: options.serverUserId}}, error: null},
+      getSession: async () =>
+        options.cachedSessionUserId
+          ? {
+              data: {
+                session: {
+                  access_token: 'mock-jwt',
+                  user: {id: options.cachedSessionUserId},
+                },
+              },
+              error: null,
+            }
+          : {data: {session: null}, error: null},
+      signInWithPassword: async ({email}: {email: string}) =>
+        options.serverUserId
+          ? {
+              data: {
+                user: {id: options.serverUserId, email},
+                session: {access_token: 'mock-jwt', user: {id: options.serverUserId, email}},
+              },
+              error: null,
+            }
+          : {data: {user: null, session: null}, error: {message: 'Invalid login credentials'}},
+      signOut: async () => {
+        signOutCount += 1;
+        return {error: null};
+      },
+    },
+    from: (table: string) => ({
+      select: () => ({
+        eq: (_col: string, val: string) => ({
+          maybeSingle: async () => {
+            // Simulates RLS on public.admin_profiles: auth.uid() = auth_user_id
+            if (
+              table === 'admin_profiles' &&
+              options.serverUserId &&
+              val === options.serverUserId &&
+              options.adminProfileOwnerId === options.serverUserId
+            ) {
+              return {
+                data: {
+                  id: '11111111-1111-4111-8111-111111111111',
+                  auth_user_id: options.serverUserId,
+                  email: 'admin@example.com',
+                  created_at: '2026-01-01T00:00:00Z',
+                },
+                error: null,
+              };
+            }
+            return {data: null, error: null};
+          },
+        }),
+      }),
+    }),
+  } as unknown as SupabaseClient;
+
+  return {
+    client,
+    getSignOutCount: () => signOutCount,
+  };
+}
 
 describe('Security Validators & Sanitizers', () => {
   it('blocks dangerous schemes and protocol-relative URLs in sanitizeImageSrc', () => {
@@ -144,5 +227,93 @@ describe('Security Validators & Sanitizers', () => {
         public_menu_url: 'javascript:alert(1)',
       })
     ).rejects.toThrow();
+  });
+});
+
+describe('Authorization Boundaries & Multi-Actor Access Control', () => {
+  const ADMIN_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const NON_ADMIN_USER_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+
+  it('denies anonymous visitors from admin authorization guards', async () => {
+    const anonMock = createMockAuthClient({
+      serverUserId: null,
+      cachedSessionUserId: null,
+      adminProfileOwnerId: ADMIN_ID,
+    });
+
+    expect(await getAuthorizedAdminSession(anonMock.client)).toBeNull();
+    await expect(requireAuthorizedAdmin(anonMock.client)).rejects.toThrow(
+      'Administrator authorization required.'
+    );
+  });
+
+  it('rejects revoked or forged localStorage session tokens when server getUser() fails', async () => {
+    const staleMock = createMockAuthClient({
+      serverUserId: null,
+      serverUserError: 'JWT expired or revoked',
+      cachedSessionUserId: ADMIN_ID,
+      adminProfileOwnerId: ADMIN_ID,
+    });
+
+    expect(await getAuthorizedAdminSession(staleMock.client)).toBeNull();
+    await expect(requireAuthorizedAdmin(staleMock.client)).rejects.toThrow(
+      'Administrator authorization required.'
+    );
+  });
+
+  it('blocks and signs out an authenticated non-admin user trying to access admin routes', async () => {
+    const nonAdminMock = createMockAuthClient({
+      serverUserId: NON_ADMIN_USER_ID,
+      cachedSessionUserId: NON_ADMIN_USER_ID,
+      adminProfileOwnerId: ADMIN_ID,
+    });
+
+    expect(await getAuthorizedAdminSession(nonAdminMock.client)).toBeNull();
+    expect(nonAdminMock.getSignOutCount()).toBe(1);
+
+    await expect(
+      signInAdmin('other-user@example.com', 'Password123!', nonAdminMock.client)
+    ).rejects.toThrow('not registered as the authorized administrator');
+    expect(nonAdminMock.getSignOutCount()).toBe(2);
+  });
+
+  it('allows only the verified registered admin in admin_profiles', async () => {
+    const adminMock = createMockAuthClient({
+      serverUserId: ADMIN_ID,
+      cachedSessionUserId: ADMIN_ID,
+      adminProfileOwnerId: ADMIN_ID,
+    });
+
+    const auth = await requireAuthorizedAdmin(adminMock.client);
+    expect(auth.profile.auth_user_id).toBe(ADMIN_ID);
+    expect(adminMock.getSignOutCount()).toBe(0);
+  });
+
+  it('enforces RLS, column isolation, and least privilege across SQL migrations', () => {
+    const migration002 = fs.readFileSync(
+      path.resolve(process.cwd(), 'supabase/migrations/002_rls_and_storage.sql'),
+      'utf8'
+    );
+    const migration005 = fs.readFileSync(
+      path.resolve(process.cwd(), 'supabase/migrations/005_security_hardening.sql'),
+      'utf8'
+    );
+
+    // RLS enabled on all core tables
+    expect(migration002).toContain('ALTER TABLE public.admin_profiles ENABLE ROW LEVEL SECURITY;');
+    expect(migration002).toContain('ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;');
+    expect(migration002).toContain('ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;');
+    expect(migration002).toContain('ALTER TABLE public.business_settings ENABLE ROW LEVEL SECURITY;');
+
+    // admin_notes omitted from anon column-level SELECT grant
+    const anonGrantMatch = migration002.match(/GRANT SELECT \([\s\S]*?\) ON public\.products TO anon;/);
+    expect(anonGrantMatch).not.toBeNull();
+    expect(anonGrantMatch?.[0]).not.toContain('admin_notes');
+
+    // Hardening migration closes authenticated non-admin read path, locks search_path, restricts is_admin(), and stops anon bucket listing
+    expect(migration005).toContain('SET search_path = public');
+    expect(migration005).toContain('REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC, anon;');
+    expect(migration005).toContain('FOR SELECT\n  TO anon');
+    expect(migration005).toContain("USING (bucket_id = 'menu-images' AND public.is_admin())");
   });
 });
