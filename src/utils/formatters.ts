@@ -59,7 +59,7 @@ export function sanitizeImageSrc(
 
   try {
     const parsed = new URL(trimmed);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    if (parsed.protocol !== 'https:') {
       return null;
     }
     return parsed.toString();
@@ -83,11 +83,11 @@ export function validateExternalImageUrl(raw: string): {
 
   try {
     const parsed = new URL(trimmed);
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    if (parsed.protocol !== 'https:') {
       return {
         valid: false,
         normalized: '',
-        error: 'Image URL must start with https:// or http://',
+        error: 'Image URL must start with https://',
       };
     }
     if (parsed.username || parsed.password) {

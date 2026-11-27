@@ -104,7 +104,7 @@ BEGIN
   ) THEN
     ALTER TABLE public.products
       ADD CONSTRAINT products_image_url_protocol_check
-      CHECK (image_url = 'no-image' OR image_url ~* '^https?://') NOT VALID;
+      CHECK (image_url = 'no-image' OR image_url ~* '^https://') NOT VALID;
   END IF;
 
   IF NOT EXISTS (
@@ -120,6 +120,6 @@ BEGIN
   ) THEN
     ALTER TABLE public.business_settings
       ADD CONSTRAINT business_settings_logo_protocol_check
-      CHECK (business_logo IS NULL OR business_logo ~* '^https?://') NOT VALID;
+      CHECK (business_logo IS NULL OR business_logo ~* '^https://') NOT VALID;
   END IF;
 END $$;

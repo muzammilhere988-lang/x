@@ -62,7 +62,7 @@ export function ChefCookingCanvas({
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
     // Clear any stale canvas before mounting
-    container.innerHTML = '';
+    container.replaceChildren();
     container.appendChild(renderer.domElement);
 
     const scene = new THREE.Scene();

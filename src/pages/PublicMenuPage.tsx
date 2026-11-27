@@ -41,6 +41,8 @@ export function PublicMenuPage() {
 
   const catalogueRef = useRef<HTMLElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const lastLoadAtRef = useRef<number>(0);
+  const isFetchingRef = useRef<boolean>(false);
 
   const handleIntroComplete = useCallback(() => {
     setShowIntro(false);
@@ -51,16 +53,23 @@ export function PublicMenuPage() {
       setLoading(false);
       return;
     }
+    const now = Date.now();
+    if (silent && (isFetchingRef.current || now - lastLoadAtRef.current < 30_000)) {
+      return;
+    }
+    isFetchingRef.current = true;
     if (!silent) {
       setLoading(true);
     }
     setError('');
     try {
       const result = await fetchPublicMenuData();
+      lastLoadAtRef.current = Date.now();
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load menu right now.');
     } finally {
+      isFetchingRef.current = false;
       setLoading(false);
     }
   }, []);

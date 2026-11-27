@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+AUDIT.md
+walkthrough.md
+

@@ -111,6 +111,7 @@ describe('Security Validators & Sanitizers', () => {
     expect(sanitizeImageSrc('//evil.example/payload.png')).toBeNull();
     expect(sanitizeImageSrc('no-image')).toBeNull();
     expect(sanitizeImageSrc('')).toBeNull();
+    expect(sanitizeImageSrc('http://insecure.example/photo.jpg')).toBeNull();
     expect(sanitizeImageSrc('blob:https://qrsystemme.netlify.app/123')).toBeNull();
     expect(sanitizeImageSrc('blob:https://qrsystemme.netlify.app/123', {allowBlob: true})).toBe(
       'blob:https://qrsystemme.netlify.app/123'
@@ -121,7 +122,8 @@ describe('Security Validators & Sanitizers', () => {
     );
   });
 
-  it('rejects private/loopback/metadata hosts and embedded credentials in validateExternalImageUrl', () => {
+  it('rejects private/loopback/metadata/http hosts and embedded credentials in validateExternalImageUrl', () => {
+    expect(validateExternalImageUrl('http://i.pinimg.com/photo.jpg').valid).toBe(false);
     expect(validateExternalImageUrl('http://169.254.169.254/latest/meta-data/').valid).toBe(false);
     expect(validateExternalImageUrl('http://127.0.0.1:8080/secret.png').valid).toBe(false);
     expect(validateExternalImageUrl('http://localhost/admin.png').valid).toBe(false);
@@ -315,5 +317,16 @@ describe('Authorization Boundaries & Multi-Actor Access Control', () => {
     expect(migration005).toContain('REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC, anon;');
     expect(migration005).toContain('FOR SELECT\n  TO anon');
     expect(migration005).toContain("USING (bucket_id = 'menu-images' AND public.is_admin())");
+    expect(migration005).toContain("CHECK (image_url = 'no-image' OR image_url ~* '^https://')");
+
+    // Audit log migration enforces append-only RLS for admin only
+    const migration006 = fs.readFileSync(
+      path.resolve(process.cwd(), 'supabase/migrations/006_admin_audit_logs.sql'),
+      'utf8'
+    );
+    expect(migration006).toContain('ALTER TABLE public.admin_audit_logs ENABLE ROW LEVEL SECURITY;');
+    expect(migration006).toContain('REVOKE ALL ON public.admin_audit_logs FROM PUBLIC, anon, authenticated;');
+    expect(migration006).toContain('GRANT SELECT, INSERT ON public.admin_audit_logs TO authenticated;');
+    expect(migration006).toContain('actor_user_id = auth.uid()');
   });
 });

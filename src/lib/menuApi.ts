@@ -13,6 +13,30 @@ import {
 } from '../utils/formatters';
 import {getFriendlyErrorMessage, supabase} from './supabase';
 
+async function logAdminAction(entry: {
+  action: string;
+  entityType: 'category' | 'product' | 'business_settings' | 'storage';
+  entityId?: string | null;
+  summary: string;
+}): Promise<void> {
+  if (!supabase) return;
+  try {
+    const {data: userData} = await supabase.auth.getUser();
+    const userId = userData?.user?.id;
+    if (!userId) return;
+
+    await supabase.from('admin_audit_logs').insert({
+      actor_user_id: userId,
+      action: entry.action.trim().slice(0, 80),
+      entity_type: entry.entityType,
+      entity_id: entry.entityId ? entry.entityId.slice(0, 100) : null,
+      summary: entry.summary.trim().slice(0, 240) || entry.action,
+    });
+  } catch {
+    // Non-blocking audit logging: never breaks primary admin mutations if Migration 006 is not yet applied
+  }
+}
+
 const ALLOWED_MENU_THEMES = new Set<MenuThemeId>([
   'warm-ivory',
   'linen-stone',
@@ -162,6 +186,13 @@ export async function createCategory(input: {
     throw new Error(getFriendlyErrorMessage(error, 'Failed to create category.'));
   }
 
+  void logAdminAction({
+    action: 'category.create',
+    entityType: 'category',
+    entityId: data.id,
+    summary: `Created category "${data.name}"`,
+  });
+
   return data as Category;
 }
 
@@ -207,6 +238,13 @@ export async function updateCategory(
     throw new Error(getFriendlyErrorMessage(error, 'Failed to update category.'));
   }
 
+  void logAdminAction({
+    action: 'category.update',
+    entityType: 'category',
+    entityId: data.id,
+    summary: `Updated category "${data.name}"`,
+  });
+
   return data as Category;
 }
 
@@ -220,6 +258,13 @@ export async function deleteCategory(id: string): Promise<void> {
   if (error) {
     throw new Error(getFriendlyErrorMessage(error, 'Failed to delete category.'));
   }
+
+  void logAdminAction({
+    action: 'category.delete',
+    entityType: 'category',
+    entityId: id,
+    summary: `Deleted category ${id}`,
+  });
 }
 
 export async function fetchAdminProducts(): Promise<Product[]> {
@@ -289,6 +334,13 @@ export async function createProduct(input: {
   if (error) {
     throw new Error(getFriendlyErrorMessage(error, 'Failed to create product.'));
   }
+
+  void logAdminAction({
+    action: 'product.create',
+    entityType: 'product',
+    entityId: data.id,
+    summary: `Created product "${data.name}" (${data.price})`,
+  });
 
   return {...data, price: Number(data.price)} as Product;
 }
@@ -376,6 +428,13 @@ export async function updateProduct(
     throw new Error(getFriendlyErrorMessage(error, 'Failed to update product.'));
   }
 
+  void logAdminAction({
+    action: 'product.update',
+    entityType: 'product',
+    entityId: data.id,
+    summary: `Updated product "${data.name}"`,
+  });
+
   return {...data, price: Number(data.price)} as Product;
 }
 
@@ -389,6 +448,13 @@ export async function deleteProduct(id: string): Promise<void> {
   if (error) {
     throw new Error(getFriendlyErrorMessage(error, 'Failed to delete product.'));
   }
+
+  void logAdminAction({
+    action: 'product.delete',
+    entityType: 'product',
+    entityId: id,
+    summary: `Deleted product ${id}`,
+  });
 }
 
 export async function fetchBusinessSettings(): Promise<BusinessSettings | null> {
@@ -487,6 +553,13 @@ export async function saveBusinessSettings(
     if (error) {
       throw new Error(getFriendlyErrorMessage(error, 'Failed to update business settings.'));
     }
+    void logAdminAction({
+      action: 'business_settings.update',
+      entityType: 'business_settings',
+      entityId: data.id,
+      summary: `Updated business settings (${data.menu_theme})`,
+    });
+
     return data as BusinessSettings;
   }
 
@@ -501,5 +574,13 @@ export async function saveBusinessSettings(
   if (error) {
     throw new Error(getFriendlyErrorMessage(error, 'Failed to save business settings.'));
   }
+
+  void logAdminAction({
+    action: 'business_settings.create',
+    entityType: 'business_settings',
+    entityId: data.id,
+    summary: `Initialized business settings (${data.menu_theme})`,
+  });
+
   return data as BusinessSettings;
 }
